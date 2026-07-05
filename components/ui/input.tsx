@@ -65,11 +65,31 @@ export function Textarea({ className, ...props }: ComponentProps<"textarea">) {
 
 export function Select({ className, children, ...props }: ComponentProps<"select">) {
   return (
-    <select
-      className={cn(fieldBase, "h-11 px-3.5 text-sm appearance-none", className)}
-      {...props}
-    >
-      {children}
-    </select>
+    <div className="relative">
+      <select
+        className={cn(
+          fieldBase,
+          "h-11 w-full cursor-pointer appearance-none pl-3.5 pr-10 text-sm",
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </select>
+      <svg
+        aria-hidden
+        viewBox="0 0 20 20"
+        fill="none"
+        className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-subtle"
+      >
+        <path
+          d="M6 8l4 4 4-4"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
   );
 }
