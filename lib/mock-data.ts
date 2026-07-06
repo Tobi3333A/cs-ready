@@ -23,13 +23,17 @@ export type Recommendation = {
   estimate: string;
 };
 
+export type IntegrationInputType = "link" | "upload";
+
 export type Integration = {
   key: string;
   name: string;
   description: string;
   icon: string;
-  connected: boolean;
-  meta?: string;
+  inputType: IntegrationInputType;
+  linkPlaceholder?: string;
+  acceptedTypes?: string;
+  uploadHint?: string;
 };
 
 export type RoadmapStep = {
@@ -156,45 +160,50 @@ export const integrations: Integration[] = [
     name: "GitHub",
     description: "Analyze repos, commit cadence, languages, and READMEs.",
     icon: "🐙",
-    connected: true,
-    meta: "@alexchen · 42 repos",
+    inputType: "link",
+    linkPlaceholder: "https://github.com/your-username",
   },
   {
     key: "leetcode",
     name: "LeetCode",
     description: "Track solved problems, difficulty mix, and contest rating.",
     icon: "🟠",
-    connected: true,
-    meta: "412 solved · 1,742 rating",
+    inputType: "link",
+    linkPlaceholder: "https://leetcode.com/u/your-username",
   },
   {
     key: "resume",
     name: "Resume",
     description: "Parse your resume for skills, impact, and formatting.",
     icon: "📄",
-    connected: true,
-    meta: "alex-chen-resume.pdf",
+    inputType: "upload",
+    acceptedTypes: ".pdf,.doc,.docx",
+    uploadHint: "PDF or Word · max 10 MB",
   },
   {
     key: "linkedin",
     name: "LinkedIn",
     description: "Pull experience and endorsements for context.",
     icon: "💼",
-    connected: false,
+    inputType: "link",
+    linkPlaceholder: "https://linkedin.com/in/your-profile",
   },
   {
     key: "portfolio",
     name: "Portfolio site",
     description: "Let the AI review your personal site and case studies.",
     icon: "🌐",
-    connected: false,
+    inputType: "link",
+    linkPlaceholder: "https://your-portfolio.com",
   },
   {
     key: "transcript",
     name: "Transcript",
     description: "Add relevant coursework to strengthen fundamentals.",
     icon: "🎓",
-    connected: false,
+    inputType: "upload",
+    acceptedTypes: ".pdf",
+    uploadHint: "PDF · max 10 MB",
   },
 ];
 
