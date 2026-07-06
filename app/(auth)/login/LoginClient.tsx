@@ -2,21 +2,13 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { SocialButtons } from "@/components/ui/social-buttons";
 import { login } from "./actions";
 
 export function LoginClient() {
-  const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/dashboard";
-  const authError = searchParams.get("error");
-  const [state, formAction, pending] = useActionState(login, {});
-
-  const errorMessage =
-    state.error ??
-    (authError === "auth" ? "Authentication failed. Please try again." : undefined);
+  const [state, formAction, pending] = useActionState(login, {ok: false});
 
   return (
     <div className="space-y-6">
@@ -36,8 +28,6 @@ export function LoginClient() {
       </div>
 
       <form className="space-y-4" action={formAction}>
-        <input type="hidden" name="next" value={next} />
-
         <Field label="Email" htmlFor="email">
           <Input
             id="email"
@@ -77,11 +67,17 @@ export function LoginClient() {
           Keep me logged in
         </label>
 
-        {errorMessage && (
-          <p className="rounded-xl border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-sm text-danger">
-            {errorMessage}
-          </p>
-        )}
+        {state.message && 
+          (state.ok ? (
+            <p className="rounded-xl border px-3.5 py-2.5 text-sm text-green-400">
+              {state.message}
+            </p>
+          ) : (
+            <p className="rounded-xl border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-sm text-danger">
+              {state.message}
+            </p>
+          ))
+        }
 
         <Button type="submit" size="lg" className="w-full" disabled={pending}>
           {pending ? "Logging in…" : "Log in"}

@@ -8,7 +8,7 @@ import { SocialButtons } from "@/components/ui/social-buttons";
 import { signup } from "./actions";
 
 export function SignupClient() {
-  const [state, formAction, pending] = useActionState(signup, {});
+  const [state, formAction, pending] = useActionState(signup, {ok: false});
 
   return (
     <div className="space-y-6">
@@ -82,11 +82,17 @@ export function SignupClient() {
           />
         </Field>
 
-        {state.error && (
-          <p className="rounded-xl border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-sm text-danger">
-            {state.error}
-          </p>
-        )}
+        {state.message ?
+          state.ok ? ( 
+            <p className="rounded-xl border px-3.5 py-2.5 text-sm text-green-500">
+              {state.message}
+            </p>
+          ) : (
+            <p className="rounded-xl border border-danger/30 bg-danger/10 px-3.5 py-2.5 text-sm text-danger">
+              {state.message}
+            </p>
+          ) : null
+        }
 
         <Button type="submit" size="lg" className="w-full" disabled={pending}>
           {pending ? "Creating account…" : "Create account"}

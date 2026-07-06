@@ -1,16 +1,16 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import {
-  type AuthActionState,
-  gradeToGraduationYear,
-} from "@/lib/auth/utils";
+
+type FormState = {
+  ok: boolean;
+  message?: string
+};
 
 export async function signup(
-  _prevState: AuthActionState,
+  _prevState: FormState,
   formData: FormData,
-): Promise<AuthActionState> {
+): Promise<FormState> {
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
@@ -18,45 +18,30 @@ export async function signup(
   const grade = String(formData.get("grade") ?? "Freshman");
 
   if (!firstName || !lastName || !email || !password) {
-    return { error: "Please fill in all required fields." };
+    return { ok: false, message: "Please fill in all required fields." };
   }
 
   if (password.length < 8) {
-    return { error: "Password must be at least 8 characters." };
+    return { ok: false, message: "Password must be at least 8 characters." };
   }
 
   const supabase = await createClient();
   const fullName = `${firstName} ${lastName}`.trim();
 
-  const { data, error } = await supabase.auth.signUp({
+  const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
-        first_name: firstName,
-        last_name: lastName,
+        full_name: fullName,
         grade,
       },
     },
   });
 
   if (error) {
-    return { error: error.message };
+    return { ok: false, message: error.message };
   }
 
-  if (data.user) {
-    const { error: profileError } = await supabase.from("profiles").insert({
-      id: data.user.id,
-      email,
-      full_name: fullName,
-      school: "",
-      graduation: gradeToGraduationYear(grade),
-    });
-
-    if (profileError && profileError.code !== "23505") {
-      return { error: profileError.message };
-    }
-  }
-
-  redirect("/onboarding");
+  return { ok: true, message: 'Signup successful! You should receive a verification email.'}
 }
