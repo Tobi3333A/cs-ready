@@ -1,32 +1,108 @@
 import type { Metadata } from "next";
 import { Topbar } from "@/components/dashboard/topbar";
+import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { roadmap } from "@/lib/mock-data";
+import { getUser } from "@/lib/supabase/getUser";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Roadmap · CS-Ready",
 };
 
-const statusMeta = {
-  done: { tone: "accent" as const, label: "Completed", dot: "bg-accent-500" },
-  active: { tone: "brand" as const, label: "In progress", dot: "bg-brand-500" },
-  upcoming: { tone: "neutral" as const, label: "Upcoming", dot: "bg-white/20" },
+type Roadmap = {
+  created_at: string;
+  goal: number;
+  id: string;
+  is_done: boolean;
+  now: number;
+  target: string;
+  updated_at: string;
+  user_id: string;
+  steps: {
+    created_at: string;
+    description: string;
+    id: string;
+    is_done: boolean;
+    roadmap_id: string;
+    sort_order: number;
+    timeline: string;
+    title: string;
+    updated_at: string;
+    tasks: {
+      created_at: string;
+      id: string;
+      is_done: boolean;
+      roadmap_step_id: string;
+      task: string;
+      updated_at: string;
+      }[];
+  }[]
+}
+
+function statusMeta(done: boolean) {
+  if (done) return { tone: "accent" as const, label: "Completed", dot: "bg-accent-500" };
+  else return { tone: "neutral" as const, label: "Upcoming", dot: "bg-white/20" }
 };
 
-// Show the roadmap in a sensible order: foundation first, then the weeks.
-const ordered = [...roadmap].sort((a, b) => {
-  const rank = { done: 0, active: 1, upcoming: 2 };
-  return rank[a.status] - rank[b.status];
-});
+export default async function RoadmapPage() {
+  const user = await getUser();
+  if (!user) redirect('/login');
 
-export default function RoadmapPage() {
+  const supabase = await createClient();
+  const { data, error: roadmapErr } = await supabase
+    .from('roadmap')
+    .select(`*,
+      steps:roadmap_steps(*,
+        tasks:roadmap_tasks(*)
+      )`
+    )
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  
+  if (roadmapErr) console.error('Error fetching roadmap');
+  const roadmap = data as Roadmap | null;
+
+  if (roadmapErr || !roadmap) {
+    return (
+      <>
+        <Topbar
+          title="Your roadmap"
+          subtitle="A personalized, week-by-week plan to reach Standout."
+          action={
+            <Button href="/onboarding" variant="outline" size="sm">
+              Generate new roadmap
+            </Button>
+          }
+        />
+        <div className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center gap-4 p-5 py-24 text-center lg:p-8">
+          <p className="text-xl font-semibold text-foreground">No roadmap yet</p>
+          <p className="max-w-md text-sm text-muted">
+            We couldn&apos;t find a roadmap for your account. Generate one to get a
+            personalized week-by-week plan.
+          </p>
+          <Button href="/onboarding" size="sm">
+            Generate new roadmap
+          </Button>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <Topbar
         title="Your roadmap"
         subtitle="A personalized, week-by-week plan to reach Standout."
+        action={
+          <Button href="/onboarding" variant="outline" size="sm">
+            Generate new roadmap
+          </Button>
+        }
       />
 
       <div className="mx-auto w-full max-w-4xl space-y-6 p-5 lg:p-8">
@@ -40,12 +116,12 @@ export default function RoadmapPage() {
             </div>
             <div className="flex gap-6 text-center">
               <div>
-                <p className="text-2xl font-bold text-foreground">72</p>
+                <p className="text-2xl font-bold text-foreground">{roadmap.now}</p>
                 <p className="text-xs text-subtle">now</p>
               </div>
               <div className="text-2xl text-subtle">→</div>
               <div>
-                <p className="text-2xl font-bold text-accent-400">85</p>
+                <p className="text-2xl font-bold text-accent-400">{roadmap.goal}</p>
                 <p className="text-xs text-subtle">goal</p>
               </div>
             </div>
@@ -56,8 +132,8 @@ export default function RoadmapPage() {
           {/* Timeline line */}
           <div className="absolute bottom-4 left-[7px] top-4 w-px bg-border" />
 
-          {ordered.map((step) => {
-            const meta = statusMeta[step.status];
+          {roadmap.steps.map((step) => {
+            const meta = statusMeta(step.is_done);
             return (
               <div key={step.id} className="relative">
                 <span
@@ -70,7 +146,7 @@ export default function RoadmapPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
                       <span className="text-xs font-medium uppercase tracking-wide text-subtle">
-                        {step.week}
+                        {step.timeline}
                       </span>
                       <Badge tone={meta.tone} dot>
                         {meta.label}
@@ -83,23 +159,23 @@ export default function RoadmapPage() {
                   <p className="mt-1 text-sm text-muted">{step.description}</p>
                   <ul className="mt-4 space-y-2">
                     {step.tasks.map((task) => (
-                      <li key={task} className="flex items-center gap-2.5 text-sm">
+                      <li key={task.id} className="flex items-center gap-2.5 text-sm">
                         <span
                           className={cn(
                             "grid h-5 w-5 shrink-0 place-items-center rounded-md text-[10px]",
-                            step.status === "done"
+                            step.is_done
                               ? "bg-accent-500/20 text-accent-400"
                               : "bg-white/5 text-subtle"
                           )}
                         >
-                          {step.status === "done" ? "✓" : "○"}
+                          {step.is_done ? "✓" : "○"}
                         </span>
                         <span
                           className={cn(
-                            step.status === "done" ? "text-subtle line-through" : "text-muted"
+                            step.is_done ? "text-subtle line-through" : "text-muted"
                           )}
                         >
-                          {task}
+                          {task.task}
                         </span>
                       </li>
                     ))}

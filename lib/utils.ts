@@ -7,10 +7,6 @@ export type ClassValue =
   | ClassValue[]
   | Record<string, boolean | null | undefined>;
 
-/**
- * Tiny className joiner (clsx-style) with no dependencies.
- * Flattens arrays and object maps, dropping falsy values.
- */
 export function cn(...inputs: ClassValue[]): string {
   const out: string[] = [];
 
