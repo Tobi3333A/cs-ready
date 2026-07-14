@@ -5,7 +5,7 @@ import { Card, CardBody } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Field, Input } from "@/components/ui/input";
-import { integrations as seed, type Integration } from "@/lib/mock-data";
+import { integrations as seed, type Integration } from "@/lib/constants";
 import {
   formatFileSize,
   isIntegrationProvided,

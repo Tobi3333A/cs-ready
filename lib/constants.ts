@@ -1,9 +1,3 @@
-/*
-  Mock data + shared types for the CS-Ready UI.
-  This is purely for rendering the interface — the real data, database,
-  and AI logic are wired up separately on the backend.
-*/
-
 export type ReadinessLevel = "emerging" | "developing" | "competitive" | "standout";
 
 export type ScoreCategory = {
@@ -11,7 +5,7 @@ export type ScoreCategory = {
   label: string;
   score: number; // 0 - 100
   summary: string;
-  icon: string; // emoji glyph used as a lightweight icon
+  icon: string;
 };
 
 export type Recommendation = {
@@ -34,15 +28,6 @@ export type Integration = {
   linkPlaceholder?: string;
   acceptedTypes?: string;
   uploadHint?: string;
-};
-
-export type RoadmapStep = {
-  id: string;
-  week: string;
-  title: string;
-  description: string;
-  status: "done" | "active" | "upcoming";
-  tasks: string[];
 };
 
 export type TargetRole = {
@@ -213,41 +198,6 @@ export const targetRoles: TargetRole[] = [
   { id: "fullstack", title: "Full-Stack New Grad", match: 74 },
 ];
 
-export const roadmap: RoadmapStep[] = [
-  {
-    id: "w1",
-    week: "Weeks 1–2",
-    title: "Close the DSA gaps",
-    description: "Focus reps on the patterns that show up most for your targets.",
-    status: "active",
-    tasks: ["Graphs: BFS/DFS + union-find", "Dynamic programming drills", "2 timed mock assessments"],
-  },
-  {
-    id: "w2",
-    week: "Weeks 3–4",
-    title: "Level up the portfolio",
-    description: "Make your best two projects impossible to ignore.",
-    status: "upcoming",
-    tasks: ["Add architecture diagrams", "Record demo GIFs", "Polish top pinned READMEs"],
-  },
-  {
-    id: "w3",
-    week: "Weeks 5–6",
-    title: "System design & behavioral",
-    description: "Round out the interview loop beyond coding.",
-    status: "upcoming",
-    tasks: ["3 system design mocks", "Draft 6 STAR stories", "Peer mock interview"],
-  },
-  {
-    id: "w0",
-    week: "Foundation",
-    title: "Profile connected",
-    description: "GitHub, LeetCode, and resume analyzed for a baseline score.",
-    status: "done",
-    tasks: ["Connected GitHub", "Connected LeetCode", "Uploaded resume"],
-  },
-];
-
 export const roleOptions: string[] = [
   "Software Engineer Intern",
   "Full-Stack Developer",
@@ -278,16 +228,13 @@ export const skillSuggestions: string[] = [
   "PyTorch",
 ];
 
-export const aiInsight = {
-  headline: "You're on the competitive track for SWE internships.",
-  body: "Your projects and resume are already ahead of most applicants. The fastest way to jump from 72 to 85+ is closing your graph/DP gap on LeetCode and adding architecture context to your top repos. Do that in the next two weeks and your interview conversion should climb noticeably.",
-  updated: "Updated 2 hours ago",
-};
+export function getUserInitials(name: string): string {
+  if (!name) return "";
+  const nameParts = name.trim().split(/\s+/);
+  const initials = nameParts.map((part) => part.charAt(0).toUpperCase());
 
-export const user = {
-  name: "Alex Chen",
-  email: "alex.chen@university.edu",
-  school: "State University",
-  gradYear: "2026",
-  initials: "AC",
-};
+  if (initials.length > 1) {
+    return initials[0] + initials[initials.length - 1];
+  }
+  return initials[0] || "";
+}

@@ -6,15 +6,15 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScoreRing } from "@/components/ui/score-ring";
 import {
-  aiInsight,
   levelForScore,
   overallScore,
   readinessLevels,
   recommendations,
   scoreCategories,
   targetRoles,
-  user,
-} from "@/lib/mock-data";
+} from "@/lib/constants";
+import { getUser } from "@/lib/supabase/getUser";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "Overview · CS-Ready",
@@ -26,13 +26,15 @@ const impactTone = {
   low: "neutral",
 } as const;
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const user = await getUser();
+  if (!user) redirect('/login');
   const level = readinessLevels[levelForScore(overallScore)];
 
   return (
     <>
       <Topbar
-        title={`Welcome back, ${user.name.split(" ")[0]}`}
+        title={`Welcome back, ${user.user_metadata.full_name.split(" ")[0]}`}
         subtitle="Here's where your internship readiness stands today."
         action={
           <Button href="/onboarding" variant="ghost" size="sm" className="hidden sm:inline-flex">
@@ -56,7 +58,7 @@ export default function DashboardPage() {
               <span className="text-subtle">13 to Standout</span>
             </div>
           </Card>
-
+{/* 
           <Card className="relative overflow-hidden p-6">
             <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-brand-500/15 blur-3xl" />
             <div className="relative">
@@ -82,7 +84,7 @@ export default function DashboardPage() {
                 </Button>
               </div>
             </div>
-          </Card>
+          </Card> */}
         </div>
 
         {/* Category breakdown */}

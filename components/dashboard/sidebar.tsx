@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/ui/logo";
 import { cn } from "@/lib/utils";
-import { user } from "@/lib/mock-data";
+import { getUserInitials } from "@/lib/constants";
+import { type User } from '@supabase/supabase-js'
 
 const nav = [
   { href: "/dashboard", label: "Overview", icon: "📊" },
@@ -14,7 +15,7 @@ const nav = [
   { href: "/dashboard/profile", label: "Profile", icon: "👤" },
 ];
 
-export function Sidebar() {
+export function Sidebar({ user }: { user: User}) {
   const pathname = usePathname();
 
   return (
@@ -62,10 +63,10 @@ export function Sidebar() {
         </div>
         <div className="flex items-center gap-3 rounded-xl px-2 py-2">
           <span className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-accent-500 text-sm font-semibold text-white">
-            {user.initials}
+            {getUserInitials(user.user_metadata.full_name)}
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-foreground">{user.name}</p>
+            <p className="truncate text-sm font-medium text-foreground">{user.user_metadata.full_name}</p>
             <p className="truncate text-xs text-subtle">{user.email}</p>
           </div>
         </div>

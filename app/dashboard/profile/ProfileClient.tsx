@@ -5,7 +5,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/input";
 import { TagInput } from "@/components/ui/tag-input";
-import { roleOptions, skillSuggestions} from "@/lib/mock-data";
+import { roleOptions, skillSuggestions} from "@/lib/constants";
 import { profile } from "./actions";
 
 type User = {
