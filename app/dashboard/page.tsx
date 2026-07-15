@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
 import { Topbar } from "@/components/dashboard/topbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
@@ -7,7 +8,6 @@ import { Progress } from "@/components/ui/progress";
 import { ScoreRing } from "@/components/ui/score-ring";
 import {
   levelForScore,
-  overallScore,
   readinessLevels,
   recommendations,
   scoreCategories,
@@ -15,6 +15,7 @@ import {
 } from "@/lib/constants";
 import { getUser } from "@/lib/supabase/getUser";
 import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Overview · CS-Ready",
@@ -29,7 +30,19 @@ const impactTone = {
 export default async function DashboardPage() {
   const user = await getUser();
   if (!user) redirect('/login');
-  const level = readinessLevels[levelForScore(overallScore)];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('readiness_breakdown')
+    .select('*')
+    .maybeSingle();
+
+  if (error || !data) {
+    const firstName = user.user_metadata.full_name?.split(" ")[0] ?? "there";
+    return <DashboardEmptyState firstName={firstName} />;
+  }
+
+  const level = readinessLevels[levelForScore(data.overall_readiness)];
 
   return (
     <>
@@ -49,7 +62,7 @@ export default async function DashboardPage() {
           <Card className="flex flex-col items-center p-6 text-center">
             <p className="text-sm text-muted">Overall readiness</p>
             <div className="my-4">
-              <ScoreRing value={overallScore} label={level.label} sublabel="for SWE internships" />
+              <ScoreRing value={data.overall_readiness} label={level.label} sublabel="for SWE internships" />
             </div>
             <div className="flex items-center gap-2 text-sm">
               <Badge tone="accent" dot>
@@ -72,9 +85,9 @@ export default async function DashboardPage() {
                 </div>
               </div>
               <h2 className="mt-4 text-xl font-semibold leading-snug text-foreground">
-                {aiInsight.headline}
+                {aiInsight.insight_headline}
               </h2>
-              <p className="mt-3 text-sm leading-relaxed text-muted">{aiInsight.body}</p>
+              <p className="mt-3 text-sm leading-relaxed text-muted">{aiInsight.insight}</p>
               <div className="mt-5 flex flex-wrap gap-3">
                 <Button href="/dashboard/roadmap" size="sm">
                   See my roadmap
