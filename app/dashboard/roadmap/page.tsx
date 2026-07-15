@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Topbar } from "@/components/dashboard/topbar";
-import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -8,6 +7,7 @@ import { getUser } from "@/lib/supabase/getUser";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { GenerateRoadmapButton } from "./generateRoadmapButton";
+import { RoadmapTasks } from "./RoadmapTasks";
 
 export const metadata: Metadata = {
   title: "Roadmap · CS-Ready",
@@ -43,16 +43,15 @@ type Roadmap = {
   }[]
 }
 
+function roadmapStatusMeta(done: boolean) {
+  if (done) return { tone: "accent" as const, label: "Completed", dot: "bg-accent-500" };
+  return { tone: "neutral" as const, label: "In progress", dot: "bg-white/20" };
+}
+
 function statusMeta(done: boolean) {
   if (done) return { tone: "accent" as const, label: "Completed", dot: "bg-accent-500" };
-  else return { tone: "neutral" as const, label: "Upcoming", dot: "bg-white/20" }
+  return { tone: "neutral" as const, label: "Unfinished", dot: "bg-white/20" }
 };
-
-async function createRoadmap() {
-  await fetch('/api/ai/roadmap', {
-    method: 'POST'
-  });
-}
 
 export default async function RoadmapPage() {
   const user = await getUser();
@@ -81,7 +80,7 @@ export default async function RoadmapPage() {
           title="Your roadmap"
           subtitle="A personalized, week-by-week plan to reach Standout."
           action={
-            <GenerateRoadmapButton />
+            <GenerateRoadmapButton variant="outline" />
           }
         />
         <div className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center gap-4 p-5 py-24 text-center lg:p-8">
@@ -96,23 +95,46 @@ export default async function RoadmapPage() {
     );
   }
 
+  const roadmapMeta = roadmapStatusMeta(roadmap.is_done);
+
   return (
     <>
       <Topbar
         title="Your roadmap"
         subtitle="A personalized, week-by-week plan to reach Standout."
         action={
-          <GenerateRoadmapButton />
+          <GenerateRoadmapButton variant="outline" disabled={!roadmap.is_done} />
         }
       />
 
       <div className="mx-auto w-full max-w-4xl space-y-6 p-5 lg:p-8">
+        {roadmap.is_done && (
+          <Card className="border-accent-500/30 bg-accent-500/10">
+            <CardBody className="flex items-center gap-3 p-4">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent-500/20 text-lg text-accent-400">
+                ✓
+              </span>
+              <div>
+                <p className="font-semibold text-foreground">Roadmap complete</p>
+                <p className="text-sm text-muted">
+                  You&apos;ve finished every step. Generate a new roadmap when you&apos;re ready for your next goal.
+                </p>
+              </div>
+            </CardBody>
+          </Card>
+        )}
+
         <Card className="bg-gradient-to-br from-brand-600/15 to-surface">
           <CardBody className="flex flex-wrap items-center justify-between gap-4 p-6">
             <div>
-              <p className="text-sm text-muted">Target</p>
+              <div className="flex items-center gap-2">
+                <p className="text-sm text-muted">Target</p>
+                <Badge tone={roadmapMeta.tone} dot>
+                  {roadmapMeta.label}
+                </Badge>
+              </div>
               <p className="text-xl font-semibold text-foreground">
-                Reach an 85+ readiness score in 6 weeks
+                {roadmap.target}
               </p>
             </div>
             <div className="flex gap-6 text-center">
@@ -158,29 +180,7 @@ export default async function RoadmapPage() {
                     {step.title}
                   </h3>
                   <p className="mt-1 text-sm text-muted">{step.description}</p>
-                  <ul className="mt-4 space-y-2">
-                    {step.tasks.map((task) => (
-                      <li key={task.id} className="flex items-center gap-2.5 text-sm">
-                        <span
-                          className={cn(
-                            "grid h-5 w-5 shrink-0 place-items-center rounded-md text-[10px]",
-                            step.is_done
-                              ? "bg-accent-500/20 text-accent-400"
-                              : "bg-white/5 text-subtle"
-                          )}
-                        >
-                          {step.is_done ? "✓" : "○"}
-                        </span>
-                        <span
-                          className={cn(
-                            step.is_done ? "text-subtle line-through" : "text-muted"
-                          )}
-                        >
-                          {task.task}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                  <RoadmapTasks tasks={step.tasks} />
                 </Card>
               </div>
             );
