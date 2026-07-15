@@ -1,9 +1,14 @@
 import { Topbar } from "@/components/dashboard/topbar";
+import { GenerateReadinessButton } from "@/app/dashboard/generateReadinessButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { scoreCategories } from "@/lib/constants";
+
+type ScoreCategory = {
+  label: string;
+  icon: string;
+}
 
 const steps = [
   {
@@ -27,8 +32,33 @@ const steps = [
     icon: "🧭",
     title: "Generate your score",
     body: "Run your first analysis to get a readiness score, category breakdown, and AI insights.",
-    href: "/dashboard/integrations",
-    cta: "Get started",
+  },
+];
+
+export const scoreCategories: ScoreCategory[] = [
+  {
+    label: "Data Structures & Algorithms",
+    icon: "🧠",
+  },
+  {
+    label: "Projects & Portfolio",
+    icon: "🚀",
+  },
+  {
+    label: "Open Source & GitHub",
+    icon: "🐙",
+  },
+  {
+    label: "System Design",
+    icon: "🏗️",
+  },
+  {
+    label: "Resume & Experience",
+    icon: "📄",
+  },
+  {
+    label: "Behavioral & Comms",
+    icon: "💬",
   },
 ];
 
@@ -97,11 +127,9 @@ export function DashboardEmptyState({ firstName }: { firstName: string }) {
                 next steps.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Button href="/dashboard/integrations" size="sm">
+                <GenerateReadinessButton />
+                <Button href="/dashboard/integrations" variant="secondary" size="sm">
                   Connect integrations
-                </Button>
-                <Button href="/dashboard/profile" variant="secondary" size="sm">
-                  Complete profile
                 </Button>
               </div>
             </div>
@@ -132,14 +160,24 @@ export function DashboardEmptyState({ firstName }: { firstName: string }) {
                   </div>
                   <h4 className="mt-4 font-medium text-foreground">{step.title}</h4>
                   <p className="mt-2 text-sm text-muted">{step.body}</p>
-                  <Button
-                    href={step.href}
-                    variant="ghost"
-                    size="sm"
-                    className="mt-4 px-0 text-brand-300 hover:bg-transparent hover:text-brand-200"
-                  >
-                    {step.cta} →
-                  </Button>
+                  {"href" in step && step.href ? (
+                    <Button
+                      href={step.href}
+                      variant="ghost"
+                      size="sm"
+                      className="mt-4 px-0 text-brand-300 hover:bg-transparent hover:text-brand-200"
+                    >
+                      {step.cta} →
+                    </Button>
+                  ) : (
+                    <div className="mt-4">
+                      <GenerateReadinessButton
+                        variant="ghost"
+                        size="sm"
+                        label="Get started →"
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -160,9 +198,9 @@ export function DashboardEmptyState({ firstName }: { firstName: string }) {
               <Badge tone="neutral">6 categories</Badge>
             </div>
             <div className="mt-6 grid gap-4 opacity-50 sm:grid-cols-2">
-              {scoreCategories.map((category) => (
+              {scoreCategories.map((category, idx) => (
                 <div
-                  key={category.key}
+                  key={idx}
                   className="rounded-xl border border-dashed border-border/80 bg-surface-2/20 p-4"
                 >
                   <div className="flex items-start justify-between gap-3">

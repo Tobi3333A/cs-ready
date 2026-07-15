@@ -52,7 +52,7 @@ export function Sidebar({ user }: { user: User}) {
         <div className="mb-3 rounded-xl border border-brand-500/25 bg-gradient-to-br from-brand-500/15 to-accent-500/10 p-4">
           <p className="text-sm font-medium text-foreground">Boost your score</p>
           <p className="mt-1 text-xs text-muted">
-            You&apos;re 13 points from Standout. See what&apos;s next.
+            There's always ways to improve. See what&apos;s next.
           </p>
           <Link
             href="/dashboard/roadmap"

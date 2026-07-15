@@ -1,22 +1,5 @@
 export type ReadinessLevel = "emerging" | "developing" | "competitive" | "standout";
 
-export type ScoreCategory = {
-  key: string;
-  label: string;
-  score: number; // 0 - 100
-  summary: string;
-  icon: string;
-};
-
-export type Recommendation = {
-  id: string;
-  title: string;
-  detail: string;
-  impact: "high" | "medium" | "low";
-  category: string;
-  estimate: string;
-};
-
 export type IntegrationInputType = "link" | "upload";
 
 export type Integration = {
@@ -52,92 +35,6 @@ export function levelForScore(score: number): ReadinessLevel {
   if (score >= 40) return "developing";
   return "emerging";
 }
-
-export const overallScore = 72;
-
-export const scoreCategories: ScoreCategory[] = [
-  {
-    key: "dsa",
-    label: "Data Structures & Algorithms",
-    score: 68,
-    summary: "Solid on arrays & trees. Graphs and DP need reps.",
-    icon: "🧠",
-  },
-  {
-    key: "projects",
-    label: "Projects & Portfolio",
-    score: 81,
-    summary: "Two strong full-stack projects with live demos.",
-    icon: "🚀",
-  },
-  {
-    key: "github",
-    label: "Open Source & GitHub",
-    score: 64,
-    summary: "Consistent commits, but READMEs could go deeper.",
-    icon: "🐙",
-  },
-  {
-    key: "systemdesign",
-    label: "System Design",
-    score: 52,
-    summary: "Good fundamentals; practice scaling & trade-offs.",
-    icon: "🏗️",
-  },
-  {
-    key: "resume",
-    label: "Resume & Experience",
-    score: 77,
-    summary: "Quantified impact well. Trim to a single page.",
-    icon: "📄",
-  },
-  {
-    key: "behavioral",
-    label: "Behavioral & Comms",
-    score: 74,
-    summary: "Clear STAR stories. Add more leadership examples.",
-    icon: "💬",
-  },
-];
-
-export const recommendations: Recommendation[] = [
-  {
-    id: "r1",
-    title: "Grind 15 graph problems this week",
-    detail:
-      "Your LeetCode history shows a gap in BFS/DFS and union-find. These show up in ~30% of interviews for your target roles.",
-    impact: "high",
-    category: "DSA",
-    estimate: "~4 hrs",
-  },
-  {
-    id: "r2",
-    title: "Add architecture diagrams to Nimbus project",
-    detail:
-      "Recruiters skim repos in seconds. A clear diagram + demo GIF in your top pinned repo boosts credibility fast.",
-    impact: "high",
-    category: "Projects",
-    estimate: "~2 hrs",
-  },
-  {
-    id: "r3",
-    title: "Practice one system design mock",
-    detail:
-      "Design a URL shortener end-to-end. Focus on estimating load and justifying your database choice.",
-    impact: "medium",
-    category: "System Design",
-    estimate: "~1 hr",
-  },
-  {
-    id: "r4",
-    title: "Tighten resume to a single page",
-    detail:
-      "Two bullet points reference the same internship. Consolidate and lead with metrics.",
-    impact: "low",
-    category: "Resume",
-    estimate: "~30 min",
-  },
-];
 
 export const integrations: Integration[] = [
   {
