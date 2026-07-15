@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { SidebarToggle } from "@/components/dashboard/sidebar";
 
 export function Topbar({
   title,
@@ -15,6 +16,7 @@ export function Topbar({
     <div className="sticky top-0 z-30 border-b border-border/60 glass">
       <div className="flex items-center justify-between gap-4 px-5 py-4 lg:px-8">
         <div className="flex items-center gap-3">
+          <SidebarToggle />
           {/* Mobile logo link back home */}
           <Link
             href="/dashboard"
