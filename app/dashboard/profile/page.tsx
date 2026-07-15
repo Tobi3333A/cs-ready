@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Topbar } from "@/components/dashboard/topbar";
+import { SignOutButton } from "@/components/dashboard/sign-out-button";
 import { ProfileForm } from "@/app/dashboard/profile/ProfileClient";
 import { getUser } from "@/lib/supabase/getUser";
 import { redirect } from "next/navigation";
@@ -31,6 +32,9 @@ export default async function ProfilePage() {
       <Topbar title="Profile" subtitle="Manage your details, target roles, and skills." />
       <div className="mx-auto w-full max-w-4xl p-5 lg:p-8">
         <ProfileForm user={profile} />
+        <div className="mt-8 border-t border-border/60 pt-6 lg:hidden">
+          <SignOutButton />
+        </div>
       </div>
     </>
   );

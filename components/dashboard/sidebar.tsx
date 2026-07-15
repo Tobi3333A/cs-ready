@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { Logo } from "@/components/ui/logo";
 import { cn } from "@/lib/utils";
 import { getUserInitials } from "@/lib/constants";
-import { type User } from '@supabase/supabase-js'
+import { type User } from "@supabase/supabase-js";
+import { SignOutButton } from "@/components/dashboard/sign-out-button";
 
 const nav = [
   { href: "/dashboard", label: "Overview", icon: "📊" },
@@ -65,11 +66,12 @@ export function Sidebar({ user }: { user: User}) {
           <span className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-brand-500 to-accent-500 text-sm font-semibold text-white">
             {getUserInitials(user.user_metadata.full_name)}
           </span>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-foreground">{user.user_metadata.full_name}</p>
             <p className="truncate text-xs text-subtle">{user.email}</p>
           </div>
         </div>
+        <SignOutButton />
       </div>
     </aside>
   );
