@@ -62,7 +62,8 @@ Output only the structured object matching the schema. Do not include markdown, 
             projects: output.projectScore,
             system: output.systemDesignScore,
             resume: output.resumeScore,
-            behavior: output.behavioralReadinessScore
+            behavior: output.behavioralReadinessScore,
+            role_fits: output.roleFitScore
         })
         .select('id')
         .single()

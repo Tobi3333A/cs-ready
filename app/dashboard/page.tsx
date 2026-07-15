@@ -7,11 +7,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { ScoreRing } from "@/components/ui/score-ring";
-import {
-  levelForScore,
-  readinessLevels,
-  targetRoles,
-} from "@/lib/constants";
+import { levelForScore, readinessLevels } from "@/lib/constants";
 import { getUser } from "@/lib/supabase/getUser";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -27,6 +23,11 @@ type ScoreCategory = {
   score: number;
   summary: string;
   icon: string;
+};
+
+type RoleFit = {
+  role: string;
+  match: number
 };
 
 type RoadmapPreview = {
@@ -53,12 +54,16 @@ export default async function DashboardPage() {
   const { data: readiness, error } = await supabase
     .from('readiness_breakdown')
     .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (error || !readiness) {
     const firstName = user.user_metadata.full_name?.split(" ")[0] ?? "there";
     return <DashboardEmptyState firstName={firstName} />;
   }
+
+  const roleFits = Array.isArray(readiness.role_fits) ? (readiness.role_fits as RoleFit[]) : [];
 
   const scoreCategories: ScoreCategory[] = [
     {
@@ -222,8 +227,8 @@ export default async function DashboardPage() {
           </CardBody>
         </Card>
 
-        {/* Roadmap teaser + roles */}
-        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        {/* Roadmap teaser + role fit */}
+        <div className="grid items-start gap-6 lg:grid-cols-[1fr_300px]">
           <Card>
             <CardHeader
               title="Do this next"
@@ -238,90 +243,93 @@ export default async function DashboardPage() {
                 </Button>
               }
             />
-            <CardBody className="space-y-3">
+            <CardBody>
               {!roadmap || !currentStep ? (
-                <div className="rounded-xl border border-dashed border-border bg-surface-2/20 p-6 text-center">
-                  <p className="font-medium text-foreground">No roadmap yet</p>
-                  <p className="mt-1 text-sm text-muted">
-                    Generate a personalized plan to see your next actions here.
-                  </p>
-                  <div className="mt-4 flex justify-center">
+                <div className="rounded-xl border border-dashed border-border bg-surface-2/20 p-5 text-center sm:flex sm:items-center sm:justify-between sm:gap-4 sm:text-left">
+                  <div>
+                    <p className="font-medium text-foreground">No roadmap yet</p>
+                    <p className="mt-1 text-sm text-muted">
+                      Generate a personalized plan to see your next actions here.
+                    </p>
+                  </div>
+                  <div className="mt-4 shrink-0 sm:mt-0">
                     <GenerateRoadmapButton />
                   </div>
                 </div>
               ) : previewTasks.length === 0 ? (
-                <div className="rounded-xl border border-border bg-surface-2/40 p-5">
-                  <p className="font-medium text-foreground">
-                    {currentStep.is_done
-                      ? "This phase is complete"
-                      : "No open tasks in this phase"}
-                  </p>
-                  <p className="mt-1 text-sm text-muted">
-                    Head to your roadmap to continue or generate the next plan.
-                  </p>
+                <div className="rounded-xl border border-border bg-surface-2/40 p-5 sm:flex sm:items-center sm:justify-between sm:gap-4">
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {currentStep.is_done
+                        ? "This phase is complete"
+                        : "No open tasks in this phase"}
+                    </p>
+                    <p className="mt-1 text-sm text-muted">
+                      Head to your roadmap to continue or generate the next plan.
+                    </p>
+                  </div>
                   <Button
                     href="/dashboard/roadmap"
                     variant="secondary"
                     size="sm"
-                    className="mt-4"
+                    className="mt-4 shrink-0 sm:mt-0"
                   >
                     Open roadmap
                   </Button>
                 </div>
               ) : (
-                previewTasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="group flex items-start gap-4 rounded-xl border border-border bg-surface-2/40 p-4 transition-colors hover:border-border-strong"
-                  >
-                    <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand-500/15 text-sm">
-                      ➜
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-foreground">{task.task}</p>
-                      <div className="mt-2 flex items-center gap-3 text-xs text-subtle">
-                        <span>{currentStep.timeline}</span>
-                        <span>·</span>
-                        <span>{currentStep.title}</span>
+                <ul className="divide-y divide-border/60 rounded-xl border border-border bg-surface-2/40">
+                  {previewTasks.map((task) => (
+                    <li
+                      key={task.id}
+                      className="flex items-start gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.03]"
+                    >
+                      <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-brand-500/15 text-xs">
+                        ➜
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium leading-snug text-foreground">
+                          {task.task}
+                        </p>
+                        <p className="mt-1 text-xs text-subtle">
+                          {currentStep.timeline} · {currentStep.title}
+                        </p>
                       </div>
-                    </div>
-                  </div>
-                ))
+                    </li>
+                  ))}
+                </ul>
               )}
             </CardBody>
           </Card>
 
-          <div className="space-y-6">
-            <Card>
-              <CardHeader title="Role fit" description="Match for your targets." />
-              <CardBody className="space-y-4">
-                {targetRoles.map((role) => (
-                  <div key={role.id} className="space-y-2">
+          <Card>
+            <CardHeader title="Role fit" description="Match for your targets." />
+            <CardBody className="space-y-4">
+              {roleFits.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border bg-surface-2/20 p-4">
+                  <p className="text-sm font-medium text-foreground">No role fit yet</p>
+                  <p className="mt-1 text-xs text-muted">
+                    Set target roles, then re-analyze to see your match.
+                  </p>
+                </div>
+              ) : (
+                roleFits.map((role, idx) => (
+                  <div key={idx} className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-foreground">{role.title}</span>
+                      <span className="text-foreground">{role.role}</span>
                       <span className="font-semibold tabular-nums text-foreground">
                         {role.match}%
                       </span>
                     </div>
                     <Progress value={role.match} />
                   </div>
-                ))}
-                <Button href="/dashboard/profile" variant="outline" size="sm" className="w-full">
-                  Edit target roles
-                </Button>
-              </CardBody>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-accent-500/10 to-surface">
-              <CardBody className="p-6">
-                <p className="text-2xl">🔥</p>
-                <p className="mt-2 text-2xl font-bold text-foreground">12-day streak</p>
-                <p className="mt-1 text-sm text-muted">
-                  Consistency compounds. Keep shipping and solving daily.
-                </p>
-              </CardBody>
-            </Card>
-          </div>
+                ))
+              )}
+              <Button href="/dashboard/profile" variant="outline" size="sm" className="w-full">
+                Edit target roles
+              </Button>
+            </CardBody>
+          </Card>
         </div>
       </div>
     </>
