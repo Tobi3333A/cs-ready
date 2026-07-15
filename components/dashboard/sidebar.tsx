@@ -19,7 +19,7 @@ export function Sidebar({ user }: { user: User}) {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden w-64 shrink-0 flex-col border-r border-border/60 bg-surface/40 lg:flex">
+    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col overflow-y-auto border-r border-border/60 bg-surface/40 lg:flex">
       <div className="flex h-16 items-center px-5">
         <Logo />
       </div>
