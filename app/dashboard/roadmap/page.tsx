@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { getUser } from "@/lib/supabase/getUser";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { GenerateRoadmapButton } from "./generateRoadmapButton";
 
 export const metadata: Metadata = {
   title: "Roadmap · CS-Ready",
@@ -47,6 +48,12 @@ function statusMeta(done: boolean) {
   else return { tone: "neutral" as const, label: "Upcoming", dot: "bg-white/20" }
 };
 
+async function createRoadmap() {
+  await fetch('/api/ai/roadmap', {
+    method: 'POST'
+  });
+}
+
 export default async function RoadmapPage() {
   const user = await getUser();
   if (!user) redirect('/login');
@@ -74,9 +81,7 @@ export default async function RoadmapPage() {
           title="Your roadmap"
           subtitle="A personalized, week-by-week plan to reach Standout."
           action={
-            <Button href="/onboarding" variant="outline" size="sm">
-              Generate new roadmap
-            </Button>
+            <GenerateRoadmapButton />
           }
         />
         <div className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center gap-4 p-5 py-24 text-center lg:p-8">
@@ -85,9 +90,7 @@ export default async function RoadmapPage() {
             We couldn&apos;t find a roadmap for your account. Generate one to get a
             personalized week-by-week plan.
           </p>
-          <Button href="/onboarding" size="sm">
-            Generate new roadmap
-          </Button>
+          <GenerateRoadmapButton />
         </div>
       </>
     );
@@ -99,9 +102,7 @@ export default async function RoadmapPage() {
         title="Your roadmap"
         subtitle="A personalized, week-by-week plan to reach Standout."
         action={
-          <Button href="/onboarding" variant="outline" size="sm">
-            Generate new roadmap
-          </Button>
+          <GenerateRoadmapButton />
         }
       />
 
