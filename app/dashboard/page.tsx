@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
-import { Topbar } from "@/components/dashboard/topbar";
-import { GenerateReadinessButton } from "@/app/dashboard/generateReadinessButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +10,7 @@ import { getUser } from "@/lib/supabase/getUser";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { GenerateRoadmapButton } from "./roadmap/generateRoadmapButton";
+import { DashboardShell } from "./DashboardShell";
 
 export const metadata: Metadata = {
   title: "Overview · CS-Ready",
@@ -135,21 +134,14 @@ export default async function DashboardPage() {
     ? currentStep.tasks.filter((t) => !t.is_done).slice(0, 3)
     : [];
 
-  return (
-    <>
-      <Topbar
-        title={`Welcome back, ${user.user_metadata.full_name.split(" ")[0]}`}
-        subtitle="Here's where your internship readiness stands today."
-        action={
-          <GenerateReadinessButton
-            variant="ghost"
-            size="sm"
-            label="Re-analyze"
-            loadingLabel="Re-analyzing..."
-          />
-        }
-      />
+  const firstName = user.user_metadata.full_name?.split(" ")[0] ?? "there";
 
+  return (
+    <DashboardShell
+      title={`Welcome back, ${firstName}`}
+      subtitle="Here's where your internship readiness stands today."
+      showReanalyze
+    >
       <div className="mx-auto w-full max-w-6xl space-y-6 p-5 lg:p-8">
         {/* Top row: score + AI insight */}
         <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
@@ -332,6 +324,6 @@ export default async function DashboardPage() {
           </Card>
         </div>
       </div>
-    </>
+    </DashboardShell>
   );
 }

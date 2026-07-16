@@ -1,5 +1,5 @@
-import { Topbar } from "@/components/dashboard/topbar";
 import { GenerateReadinessButton } from "@/app/dashboard/generateReadinessButton";
+import { DashboardShell } from "@/app/dashboard/DashboardShell";
 import { Button } from "@/components/ui/button";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -96,12 +96,10 @@ function EmptyScoreRing() {
 
 export function DashboardEmptyState({ firstName }: { firstName: string }) {
   return (
-    <>
-      <Topbar
-        title={`Welcome, ${firstName}`}
-        subtitle="Connect your profile to unlock your readiness score."
-      />
-
+    <DashboardShell
+      title={`Welcome, ${firstName}`}
+      subtitle="Connect your profile to unlock your readiness score."
+    >
       <div className="mx-auto w-full max-w-6xl space-y-6 p-5 lg:p-8">
         <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
           <Card className="flex flex-col items-center border-dashed p-6 text-center">
@@ -224,6 +222,6 @@ export function DashboardEmptyState({ firstName }: { firstName: string }) {
           </CardBody>
         </Card>
       </div>
-    </>
+    </DashboardShell>
   );
 }

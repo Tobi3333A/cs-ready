@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useReadinessGenerate } from "./readiness-generate";
 
 export function GenerateReadinessButton({
   variant = "primary",
@@ -18,20 +19,37 @@ export function GenerateReadinessButton({
   loadingLabel?: string;
 }) {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const shared = useReadinessGenerate();
+  const [localLoading, setLocalLoading] = useState(false);
+
+  const loading = shared?.loading ?? localLoading;
   const isDisabled = disabled || loading;
 
   async function createReadiness() {
     if (isDisabled) return;
-    setLoading(true);
+
+    if (shared) {
+      await shared.generate();
+      return;
+    }
+
+    setLocalLoading(true);
     try {
       const res = await fetch("/api/ai/readiness", { method: "POST" });
-      if (!res.ok) throw new Error("Failed to generate readiness score");
+      const data = (await res.json().catch(() => null)) as {
+        success?: boolean;
+        error?: string;
+      } | null;
+
+      if (!res.ok || data?.error || !data?.success) {
+        throw new Error(data?.error ?? "Failed to generate readiness score");
+      }
+
       router.refresh();
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      setLocalLoading(false);
     }
   }
 
