@@ -79,7 +79,9 @@ export async function POST() {
         stopWhen: stepCountIs(8),
         prompt: `You are an expert career coach for CS-Ready, an AI readiness platform that helps computer science students land software engineering internships and new-grad roles.
 
-Your job is to produce a personalized 6-week roadmap that moves a student from their current readiness score to a competitive or standout level (85+). Readiness is scored 0–100 across six categories: Data Structures & Algorithms, Projects & Portfolio, Open Source & GitHub, System Design, Resume & Experience, and Behavioral & Communication skills.
+Your job is to produce a personalized roadmap that moves a student from their current readiness score to a competitive or standout level (85+). Readiness is scored 0–100 across six categories: Data Structures & Algorithms, Projects & Portfolio, Open Source & GitHub, System Design, Resume & Experience, and Behavioral & Communication skills.
+
+You decide the timeframe and cadence. Do NOT default to any fixed length—choose whatever pace genuinely fits this student's gap between their current and target readiness. It might span a few days, a couple of weeks, several weeks, or longer, and steps can be daily, weekly, or any interval you judge appropriate. Base this entirely on how much ground the student realistically needs to cover.
 
 Student context (JSON):
 ${JSON.stringify(studentContext)}
@@ -93,27 +95,27 @@ Research rules:
 - Align the target sentence and goal with the student's targetRoles when available.
 
 Guidelines:
-- Generate exactly 6 sequential weekly steps (Week 1 through Week 6).
+- Decide how many sequential steps the roadmap needs and how long the overall journey should take—there is no required number of steps or total duration. Pick what the student's gap actually warrants.
 - Each step must include 3–5 specific, actionable tasks—not vague advice. Name concrete deliverables, counts, or topics (e.g., "Solve 5 medium graph problems on LeetCode" or "Add an architecture diagram and demo GIF to your top pinned repo").
 - Address the student's weakest categories first, then progress toward interview-ready polish.
 - Structure the arc: foundational gaps → targeted skill building → portfolio and resume refinement → mock interviews and final prep.
-- Tasks should be realistic for one week of focused effort by a busy CS student.
+- Each step's tasks should be realistic for the amount of focused effort that step's timeframe implies.
 - sort_order must start at 0 and increment by 1 for each step.
 - now and goal must be integers from 0 to 100 representing overall readiness scores. goal should typically be 85 or higher.
-- target must be one motivating sentence summarizing the journey (e.g., "Reach an 85+ readiness score in 6 weeks for Software Engineer Intern interviews").
-- timeline labels must be "Week 1" through "Week 6".
+- target must be one motivating sentence summarizing the journey, including the timeframe you chose (e.g., "Reach an 85+ readiness score in 3 weeks for Software Engineer Intern interviews").
+- timeline labels must reflect the cadence you chose and stay consistent across steps (e.g., "Week 1", "Week 2" for a weekly plan, or "Day 1", "Day 2" for a short daily sprint).
 - Titles should be short and action-oriented. Descriptions must be 1–2 sentences and MUST ground the reason in a specific observation from THIS student's data—cite what you actually saw in their readiness scores, profile, or connected profiles (e.g. "Your GitHub shows only one pinned repo with no README", "Your LeetCode is mostly easy problems with few graph questions", "Your DSA score of 42 is your lowest category"). Do not give generic reasons; every step's reason must reference real evidence about this student, and if a signal was missing say so plainly.
 - Be direct, encouraging, and practical—no filler or generic platitudes.
 
 After finishing research, output only the structured object matching the schema. Do not include markdown, commentary, or text outside the schema.`,
         output: Output.object({
             schema: z.object({
-                target: z.string().describe('A single motivating sentence summarizing the student\'s end goal, including the target score and timeframe (e.g., "Reach an 85+ readiness score in 6 weeks for Software Engineer Intern interviews").'),
+                target: z.string().describe('A single motivating sentence summarizing the student\'s end goal, including the target score and the timeframe you chose for this roadmap (e.g., "Reach an 85+ readiness score in 3 weeks for Software Engineer Intern interviews").'),
                 now: z.number().describe('The student\'s current overall readiness score as an integer from 0 to 100.'),
                 goal: z.number().describe('The target overall readiness score to achieve by the end of the roadmap, as an integer from 0 to 100 (typically 85 or higher).'),
                 steps: z.array(
                     z.object({
-                        timeline: z.string().describe('A human-readable time label for this phase, shown in the UI timeline (e.g., "Week 1", "Week 2").'),
+                        timeline: z.string().describe('A human-readable time label for this phase, shown in the UI timeline, matching the cadence you chose for the roadmap (e.g., "Week 1", "Week 2", or "Day 1", "Day 2").'),
                         title: z.string().describe('A short, action-oriented heading for this roadmap phase (e.g., "Close the Graph & DP Gap").'),
                         description: z.string().describe('One to two sentences. MUST justify this phase with a specific observation from THIS student\'s data—reference what was actually seen in their readiness scores, profile, or connected profiles (e.g. "Your GitHub has no READMEs and only 2 repos" or "Your DSA score of 42 is the lowest category"). No generic rationale; if a signal was missing, state that instead.'),
                         sort_order: z.number().describe('Zero-based display order for this step; 0 is the first week, incrementing by 1 for each subsequent step.'),

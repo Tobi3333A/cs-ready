@@ -85,14 +85,14 @@ const GENERATING_STAGES = [
   },
   {
     label: "Prioritizing your weakest categories",
-    detail: "Ranking gaps so early weeks close the biggest deficits first.",
+    detail: "Ranking gaps so early phases close the biggest deficits first.",
   },
   {
-    label: "Drafting your 6-week arc",
-    detail: "Foundations → skill building → portfolio polish → interview prep.",
+    label: "Choosing your timeline & drafting the arc",
+    detail: "Picking a cadence that fits your gap — then foundations → skill building → polish → interview prep.",
   },
   {
-    label: "Writing concrete weekly tasks",
+    label: "Writing concrete phase tasks",
     detail: "Turning each phase into 3–5 specific, completable actions.",
   },
   {

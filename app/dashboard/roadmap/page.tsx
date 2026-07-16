@@ -83,8 +83,8 @@ export default async function RoadmapPage() {
           <div className="space-y-2">
             <p className="text-xl font-semibold text-foreground">No roadmap yet</p>
             <p className="mx-auto max-w-md text-sm text-muted">
-              Generate a personalized 6-week plan from your readiness scores and
-              connected profiles — with concrete tasks for each week.
+              Generate a personalized plan from your readiness scores and
+              connected profiles — with concrete tasks for each phase.
             </p>
           </div>
           <GenerateRoadmapButton label="Generate my roadmap" size="md" />

@@ -25,7 +25,7 @@ function RoadmapShellInner({
       <>
         <Topbar
           title="Your roadmap"
-          subtitle="A personalized, week-by-week plan to reach Standout."
+          subtitle="A personalized plan to reach Standout — paced to your gaps."
         />
         <RoadmapGeneratingPanel error={error} onRetry={generate} />
       </>
@@ -36,7 +36,7 @@ function RoadmapShellInner({
     <>
       <Topbar
         title="Your roadmap"
-        subtitle="A personalized, week-by-week plan to reach Standout."
+        subtitle="A personalized plan to reach Standout — paced to your gaps."
         action={
           canGenerate ? (
             <GenerateRoadmapButton
