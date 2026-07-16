@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Topbar } from "@/components/dashboard/topbar";
 import { Card, CardBody } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -8,6 +7,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { GenerateRoadmapButton } from "./generateRoadmapButton";
 import { RoadmapTasks } from "./RoadmapTasks";
+import { RoadmapShell } from "./RoadmapShell";
 
 export const metadata: Metadata = {
   title: "Roadmap · CS-Ready",
@@ -75,51 +75,44 @@ export default async function RoadmapPage() {
 
   if (roadmapErr || !roadmap) {
     return (
-      <>
-        <Topbar
-          title="Your roadmap"
-          subtitle="A personalized, week-by-week plan to reach Standout."
-          action={
-            <GenerateRoadmapButton variant="outline" />
-          }
-        />
-        <div className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center gap-4 p-5 py-24 text-center lg:p-8">
-          <p className="text-xl font-semibold text-foreground">No roadmap yet</p>
-          <p className="max-w-md text-sm text-muted">
-            We couldn&apos;t find a roadmap for your account. Generate one to get a
-            personalized week-by-week plan.
-          </p>
-          <GenerateRoadmapButton />
+      <RoadmapShell canGenerate empty>
+        <div className="mx-auto flex w-full max-w-4xl flex-col items-center justify-center gap-5 p-5 py-24 text-center lg:p-8">
+          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-500/15 text-2xl">
+            🗺️
+          </span>
+          <div className="space-y-2">
+            <p className="text-xl font-semibold text-foreground">No roadmap yet</p>
+            <p className="mx-auto max-w-md text-sm text-muted">
+              Generate a personalized 6-week plan from your readiness scores and
+              connected profiles — with concrete tasks for each week.
+            </p>
+          </div>
+          <GenerateRoadmapButton label="Generate my roadmap" size="md" />
         </div>
-      </>
+      </RoadmapShell>
     );
   }
 
   const roadmapMeta = roadmapStatusMeta(roadmap.is_done);
 
   return (
-    <>
-      <Topbar
-        title="Your roadmap"
-        subtitle="A personalized, week-by-week plan to reach Standout."
-        action={
-          <GenerateRoadmapButton variant="outline" disabled={!roadmap.is_done} />
-        }
-      />
-
+    <RoadmapShell canGenerate={roadmap.is_done}>
       <div className="mx-auto w-full max-w-4xl space-y-6 p-5 lg:p-8">
         {roadmap.is_done && (
           <Card className="border-accent-500/30 bg-accent-500/10">
-            <CardBody className="flex items-center gap-3 p-4">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent-500/20 text-lg text-accent-400">
-                ✓
-              </span>
-              <div>
-                <p className="font-semibold text-foreground">Roadmap complete</p>
-                <p className="text-sm text-muted">
-                  You&apos;ve finished every step. Generate a new roadmap when you&apos;re ready for your next goal.
-                </p>
+            <CardBody className="flex flex-wrap items-center justify-between gap-4 p-4">
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent-500/20 text-lg text-accent-400">
+                  ✓
+                </span>
+                <div>
+                  <p className="font-semibold text-foreground">Roadmap complete</p>
+                  <p className="text-sm text-muted">
+                    You&apos;ve finished every step. Generate a new roadmap when you&apos;re ready for your next goal.
+                  </p>
+                </div>
               </div>
+              <GenerateRoadmapButton label="Generate next roadmap" />
             </CardBody>
           </Card>
         )}
@@ -152,7 +145,6 @@ export default async function RoadmapPage() {
         </Card>
 
         <div className="relative space-y-4 pl-6">
-          {/* Timeline line */}
           <div className="absolute bottom-4 left-[7px] top-4 w-px bg-border" />
 
           {roadmap.steps.map((step) => {
@@ -187,6 +179,6 @@ export default async function RoadmapPage() {
           })}
         </div>
       </div>
-    </>
+    </RoadmapShell>
   );
 }
