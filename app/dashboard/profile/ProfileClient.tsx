@@ -14,7 +14,7 @@ type User = {
   full_name: string;
   grade: string;
   id: string;
-  school: string | null;
+  school: string;
   skills: string[] | null;
   target: string[] | null;
   updated_at: string;
@@ -61,11 +61,11 @@ export function ProfileForm({ user }: { user: User }) {
             <Input id="name" value={name} onChange={({target}) => setName(target.value)} />
           </Field>
           <Field label="Email" htmlFor="email">
-            <Input id="email" type="email" defaultValue={user.email} />
+            <Input id="email" type="email" defaultValue={user.email} disabled />
           </Field>
-          {/* <Field label="School" htmlFor="school">
-            <Input id="school" defaultValue={user.school} />
-          </Field> */}
+          <Field label="School" htmlFor="school">
+            <Input id="school" defaultValue={user.school} disabled />
+          </Field>
           <Field label="Grade" htmlFor="grade">
             <Select id="grad" value={grade} onChange={({target}) => setGrade(target.value)}>
               {["Freshman", "Sophomore", "Junior", "Senior"].map((y) => (
