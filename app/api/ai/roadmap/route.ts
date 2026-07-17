@@ -74,9 +74,21 @@ export async function POST() {
         profileLinks,
     };
 
-    const { output } = await generateText({
+    console.log('[roadmap] profileLinks', profileLinks);
+
+    const { output, steps } = await generateText({
         model: 'openai/gpt-4.1-mini',
         stopWhen: stepCountIs(8),
+        onStepEnd({ stepNumber, finishReason, toolCalls, toolResults }) {
+            console.log(
+                '[roadmap] step end',
+                JSON.stringify(
+                    { stepNumber, finishReason, toolCalls, toolResults },
+                    null,
+                    2
+                )
+            );
+        },
         prompt: `You are an expert career coach for CS-Ready, an AI readiness platform that helps computer science students land software engineering internships and new-grad roles.
 
 Your job is to produce a personalized roadmap that moves a student from their current readiness score to a competitive or standout level (85+). Readiness is scored 0–100 across six categories: Data Structures & Algorithms, Projects & Portfolio, Open Source & GitHub, System Design, Resume & Experience, and Behavioral & Communication skills.
@@ -88,8 +100,14 @@ ${JSON.stringify(studentContext)}
 
 Research rules:
 - For each URL in profileLinks, call perplexity_search to inspect that profile before writing tasks.
+- When calling perplexity_search:
+  - Set query to the exact full URL from profileLinks (e.g. "https://github.com/Tobi3333A"), not a shortened or fuzzy name.
+  - Do NOT set search_after_date, search_before_date, or search_recency_filter—leave results unrestricted by date.
+  - Prefer search_domain_filter only when it matches the link host (e.g. ["github.com"] for a GitHub URL).
+- After results return, keep ONLY pages whose URL clearly belongs to that same profile/username/path. Discard lookalikes (e.g. github.com/tobi/... is NOT github.com/Tobi3333A/...).
+- If no result clearly matches the linked profile, treat that signal as UNVERIFIED—not empty. Say the profile could not be verified from search. Do not invent repo counts, READMEs, or claim the account is empty.
 - Skip keys that are missing from profileLinks—do not invent GitHub repos, LeetCode stats, jobs, or projects.
-- Base concrete tasks on what you find via search plus the readiness/profile data above.
+- Base concrete tasks on verified search evidence plus the readiness/profile data above. Prefer readiness scores and profile fields when search is unverified.
 - If readiness is present, set now to overall and prioritize the lowest category scores first.
 - If readiness is null, estimate now conservatively from available signals and note uncertainty only in task specificity—not in the schema fields.
 - Align the target sentence and goal with the student's targetRoles when available.
@@ -104,7 +122,7 @@ Guidelines:
 - now and goal must be integers from 0 to 100 representing overall readiness scores. goal should typically be 85 or higher.
 - target must be one motivating sentence summarizing the journey, including the timeframe you chose (e.g., "Reach an 85+ readiness score in 3 weeks for Software Engineer Intern interviews").
 - timeline labels must reflect the cadence you chose and stay consistent across steps (e.g., "Week 1", "Week 2" for a weekly plan, or "Day 1", "Day 2" for a short daily sprint).
-- Titles should be short and action-oriented. Descriptions must be 1–2 sentences and MUST ground the reason in a specific observation from THIS student's data—cite what you actually saw in their readiness scores, profile, or connected profiles (e.g. "Your GitHub shows only one pinned repo with no README", "Your LeetCode is mostly easy problems with few graph questions", "Your DSA score of 42 is your lowest category"). Do not give generic reasons; every step's reason must reference real evidence about this student, and if a signal was missing say so plainly.
+- Titles should be short and action-oriented. Descriptions must be 1–2 sentences and MUST ground the reason in a specific observation from THIS student's data—cite readiness scores, profile fields, or verified connected-profile evidence (e.g. "Your DSA score of 42 is your lowest category", "Search could not verify your GitHub link, so prioritize making repos discoverable"). Do not invent empty-profile details. If a signal was missing or unverified, say that plainly.
 - Be direct, encouraging, and practical—no filler or generic platitudes.
 
 After finishing research, output only the structured object matching the schema. Do not include markdown, commentary, or text outside the schema.`,
@@ -117,7 +135,7 @@ After finishing research, output only the structured object matching the schema.
                     z.object({
                         timeline: z.string().describe('A human-readable time label for this phase, shown in the UI timeline, matching the cadence you chose for the roadmap (e.g., "Week 1", "Week 2", or "Day 1", "Day 2").'),
                         title: z.string().describe('A short, action-oriented heading for this roadmap phase (e.g., "Close the Graph & DP Gap").'),
-                        description: z.string().describe('One to two sentences. MUST justify this phase with a specific observation from THIS student\'s data—reference what was actually seen in their readiness scores, profile, or connected profiles (e.g. "Your GitHub has no READMEs and only 2 repos" or "Your DSA score of 42 is the lowest category"). No generic rationale; if a signal was missing, state that instead.'),
+                        description: z.string().describe('One to two sentences. MUST justify this phase with a specific observation from THIS student\'s data—readiness scores, profile fields, or verified connected-profile evidence. If a linked profile could not be verified via search, say so instead of inventing emptiness (e.g. "Your DSA score of 42 is the lowest category" or "Your GitHub link could not be verified from search").'),
                         sort_order: z.number().describe('Zero-based display order for this step; 0 is the first week, incrementing by 1 for each subsequent step.'),
                         tasks: z.array(
                             z.object({
@@ -134,6 +152,21 @@ After finishing research, output only the structured object matching the schema.
             }),
         },
     });
+
+    console.log(
+        '[roadmap] generation summary',
+        JSON.stringify(
+            {
+                stepCount: steps.length,
+                toolCallCount: steps.reduce((n, s) => n + s.toolCalls.length, 0),
+                toolResultCount: steps.reduce((n, s) => n + s.toolResults.length, 0),
+                toolCalls: steps.flatMap((s) => s.toolCalls),
+                toolResults: steps.flatMap((s) => s.toolResults),
+            },
+            null,
+            2
+        )
+    );
 
     if (!output) {
         return Response.json({ error: 'Failed to generate roadmap' }, { status: 200 });

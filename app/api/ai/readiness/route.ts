@@ -75,9 +75,21 @@ export async function POST() {
             : null,
     };
 
-    const { output } = await generateText({
+    console.log('[readiness] profileLinks', profileLinks);
+
+    const { output, steps } = await generateText({
         model: 'openai/gpt-4.1-mini',
         stopWhen: stepCountIs(8),
+        onStepEnd({ stepNumber, finishReason, toolCalls, toolResults }) {
+            console.log(
+                '[readiness] step end',
+                JSON.stringify(
+                    { stepNumber, finishReason, toolCalls, toolResults },
+                    null,
+                    2
+                )
+            );
+        },
         prompt: `You are an expert career coach for CS-Ready, an AI readiness platform that helps computer science students land software engineering internships and new-grad roles.
 
 Your job is to analyze a student's profile signals and produce an honest readiness assessment. Readiness is scored 0–100 across six categories: Data Structures & Algorithms, Projects & Portfolio, Open Source & GitHub, System Design, Resume & Experience, and Behavioral & Communication skills.
@@ -87,8 +99,14 @@ ${JSON.stringify(studentContext)}
 
 Research rules:
 - For each URL in profileLinks, call perplexity_search to inspect that profile before scoring.
+- When calling perplexity_search:
+  - Set query to the exact full URL from profileLinks (e.g. "https://github.com/Tobi3333A"), not a shortened or fuzzy name.
+  - Do NOT set search_after_date, search_before_date, or search_recency_filter—leave results unrestricted by date.
+  - Prefer search_domain_filter only when it matches the link host (e.g. ["github.com"] for a GitHub URL).
+- After results return, keep ONLY pages whose URL clearly belongs to that same profile/username/path. Discard lookalikes (e.g. github.com/tobi/... is NOT github.com/Tobi3333A/...).
+- If no result clearly matches the linked profile, treat that signal as UNVERIFIED—not empty. Say the profile could not be verified from search. Do not invent repo counts, READMEs, or claim the account is empty.
 - Skip keys that are missing from profileLinks—do not invent GitHub repos, LeetCode stats, jobs, projects, or experience.
-- Score only from evidence found via search plus the profile/upload flags above.
+- Score only from verified search evidence plus the profile/upload flags above. When a linked profile is unverified, score that category conservatively and state the verification gap in the insight—do not invent thin/empty profile details.
 - If uploads.resume.uploaded is false, score Resume & Experience conservatively and say the resume is missing in the insight.
 - If uploads.transcript.uploaded is false, do not invent coursework; note the gap only when relevant.
 - Align overallScore weighting and roleFitScore with the student's targetRoles when available.
@@ -98,8 +116,8 @@ Guidelines:
 - Score each category as an integer from 0 to 100 based only on evidence in the student's connected signals and profile.
 - overallScore must be a weighted blend of the six category scores, emphasizing categories that matter most for the student's stated target roles—not a simple average.
 - Be honest and specific. Do not inflate scores without evidence. When signals are missing or thin, score conservatively and note what is unknown in the insight.
-- insightTitle must be one short, direct headline (roughly 5–12 words) naming the student's biggest gap or opportunity, grounded in something concrete you observed (e.g., "GitHub is thin—only 2 repos, no READMEs").
-- insightBody must be 2–4 sentences in second person. MUST cite specific observations from THIS student's data—what you actually saw in their LinkedIn/GitHub/LeetCode/portfolio/profile (e.g. problem difficulty mix, repo count, missing resume). Name the highest-impact gap and one concrete next step. If previousReadiness exists and scores moved, briefly note the change with evidence. No generic platitudes.
+- insightTitle must be one short, direct headline (roughly 5–12 words) naming the student's biggest gap or opportunity, grounded in something concrete you observed or a clear verification gap (e.g., "DSA is the bottleneck—score is 42", "GitHub link could not be verified").
+- insightBody must be 2–4 sentences in second person. MUST cite specific observations from THIS student's data—verified LinkedIn/GitHub/LeetCode/portfolio evidence, readiness/profile fields, or that a signal was missing/unverified. Never invent empty-repo narratives from lookalike search hits. Name the highest-impact gap and one concrete next step. If previousReadiness exists and scores moved, briefly note the change with evidence. No generic platitudes.
 - roleFitScore must include every target role from the student's profile, each with a match percentage (0–100) for how ready they are for that role today. If targetRoles is empty, return one generic "Software Engineer Intern" entry with a cautious match.
 - If little or no signal data is provided, still output valid scores but note low confidence briefly in insightBody and use cautious mid-range scores with clear caveats.
 - Be direct, encouraging, and practical—like a recruiter who wants them to succeed.
@@ -130,6 +148,21 @@ After finishing research, output only the structured object matching the schema.
             }),
         },
     });
+
+    console.log(
+        '[readiness] generation summary',
+        JSON.stringify(
+            {
+                stepCount: steps.length,
+                toolCallCount: steps.reduce((n, s) => n + s.toolCalls.length, 0),
+                toolResultCount: steps.reduce((n, s) => n + s.toolResults.length, 0),
+                toolCalls: steps.flatMap((s) => s.toolCalls),
+                toolResults: steps.flatMap((s) => s.toolResults),
+            },
+            null,
+            2
+        )
+    );
 
     if (!output) {
         return Response.json({ error: 'Failed to generate readiness score' }, { status: 200 });
