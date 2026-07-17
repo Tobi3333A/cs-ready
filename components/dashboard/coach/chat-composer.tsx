@@ -12,13 +12,17 @@ export function ChatComposer({
   disabled,
   showSuggestions,
   onSuggestion,
+  placeholder = "Ask your coach anything about readiness, interviews, or your roadmap…",
+  hint = "Enter to send · Shift+Enter for new line · Conversations save on this device until your account syncs",
 }: {
   value: string;
   onChange: (value: string) => void;
   onSend: () => void;
   disabled?: boolean;
   showSuggestions?: boolean;
-  onSuggestion: (text: string) => void;
+  onSuggestion?: (text: string) => void;
+  placeholder?: string;
+  hint?: string;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -29,17 +33,19 @@ export function ChatComposer({
     el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
   }, [value]);
 
+  const canSend = !disabled && Boolean(value.trim());
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!disabled && value.trim()) onSend();
+      if (canSend) onSend();
     }
   };
 
   return (
-    <div className="border-t border-border/60 bg-canvas/80 p-4 backdrop-blur-md lg:px-6">
-      {showSuggestions && (
-        <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="shrink-0 border-t border-border/60 bg-canvas/85 p-4 backdrop-blur-md lg:px-6 lg:py-4">
+      {showSuggestions && onSuggestion && (
+        <div className="mx-auto mb-3 flex max-w-3xl gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {COACH_SUGGESTIONS.map((s) => (
             <button
               key={s}
@@ -56,37 +62,40 @@ export function ChatComposer({
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          onSend();
+          if (canSend) onSend();
         }}
-        className={cn(
-          "flex items-end gap-2 rounded-2xl border border-border bg-surface-2/70 p-2 shadow-lg shadow-black/10 transition-all",
-          "focus-within:border-brand-400/60 focus-within:ring-2 focus-within:ring-brand-500/20"
-        )}
+        className="mx-auto max-w-3xl"
       >
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Ask your coach anything about readiness, interviews, or your roadmap…"
-          rows={1}
-          disabled={disabled}
-          className="max-h-40 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-subtle focus:outline-none disabled:opacity-50"
-        />
-        <Button
-          type="submit"
-          size="sm"
-          disabled={disabled || !value.trim()}
-          className="shrink-0"
-          aria-label="Send message"
+        <div
+          className={cn(
+            "flex items-end gap-2 rounded-2xl border border-border bg-surface-2/80 p-2 shadow-lg shadow-black/10 transition-all",
+            "focus-within:border-brand-400/55 focus-within:ring-2 focus-within:ring-brand-500/15"
+          )}
         >
-          <SendIcon />
-        </Button>
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            rows={1}
+            disabled={disabled}
+            className="max-h-40 min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-subtle focus:outline-none disabled:opacity-50"
+          />
+          <Button
+            type="submit"
+            size="sm"
+            disabled={!canSend}
+            className="shrink-0"
+            aria-label="Send message"
+          >
+            <SendIcon />
+          </Button>
+        </div>
+        {hint ? (
+          <p className="mt-2.5 text-center text-[11px] text-subtle">{hint}</p>
+        ) : null}
       </form>
-
-      <p className="mt-2.5 text-center text-[11px] text-subtle">
-        Enter to send · Shift+Enter for new line · Conversations save on this device until your account syncs
-      </p>
     </div>
   );
 }

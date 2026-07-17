@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ChatComposer } from "@/components/dashboard/coach/chat-composer";
-import { ChatThread } from "@/components/dashboard/coach/chat-thread";
+import { CoachChat } from "@/components/dashboard/coach/coach-chat";
 import { CoachContextPanel } from "@/components/dashboard/coach/coach-context-panel";
+import { CoachLanding } from "@/components/dashboard/coach/coach-landing";
 import { ConversationSidebar } from "@/components/dashboard/coach/conversation-sidebar";
 import { SidebarToggle } from "@/components/dashboard/sidebar";
 import { demoCoachReply } from "@/lib/coach/constants";
@@ -19,6 +20,12 @@ import type { CoachConversation, CoachProfileContext } from "@/lib/coach/types";
 
 const TYPING_DELAY_MS = 900;
 
+function sortConversations(list: CoachConversation[]) {
+  return [...list].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  );
+}
+
 export function CoachWorkspace({ context }: { context: CoachProfileContext }) {
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get("q");
@@ -30,12 +37,19 @@ export function CoachWorkspace({ context }: { context: CoachProfileContext }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
+  const conversationsRef = useRef(conversations);
+  const activeIdRef = useRef(activeId);
+  const isTypingRef = useRef(isTyping);
+  const initialQuerySent = useRef(false);
+
+  conversationsRef.current = conversations;
+  activeIdRef.current = activeId;
+  isTypingRef.current = isTyping;
+
   useEffect(() => {
     const stored = loadConversations();
     setConversations(stored);
-    if (stored.length > 0) {
-      setActiveId(stored[0].id);
-    }
+    if (stored.length > 0) setActiveId(stored[0].id);
     setHydrated(true);
   }, []);
 
@@ -43,70 +57,71 @@ export function CoachWorkspace({ context }: { context: CoachProfileContext }) {
     () => conversations.find((c) => c.id === activeId) ?? null,
     [conversations, activeId]
   );
+  const hasMessages = Boolean(activeConversation?.messages.length);
 
   const persist = useCallback((next: CoachConversation[]) => {
-    const sorted = [...next].sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-    );
+    const sorted = sortConversations(next);
+    conversationsRef.current = sorted;
     setConversations(sorted);
     saveConversations(sorted);
   }, []);
 
-  const updateConversation = useCallback(
-    (id: string, updater: (c: CoachConversation) => CoachConversation) => {
-      persist(
-        conversations.map((c) => (c.id === id ? updater(c) : c))
-      );
-    },
-    [conversations, persist]
-  );
-
-  const ensureActiveConversation = useCallback((): string => {
-    if (activeId && conversations.some((c) => c.id === activeId)) {
-      return activeId;
-    }
-    const fresh = createConversation();
-    persist([fresh, ...conversations]);
-    setActiveId(fresh.id);
-    return fresh.id;
-  }, [activeId, conversations, persist]);
-
   const sendMessage = useCallback(
     async (text: string) => {
       const clean = text.trim();
-      if (!clean || isTyping) return;
+      if (!clean || isTypingRef.current) return;
 
-      const convId = ensureActiveConversation();
+      let list = conversationsRef.current;
+      let convId = activeIdRef.current;
+
+      if (!convId || !list.some((c) => c.id === convId)) {
+        const fresh = createConversation();
+        convId = fresh.id;
+        list = [fresh, ...list];
+        activeIdRef.current = convId;
+        setActiveId(convId);
+      }
+
       const userMessage = createMessage("user", clean);
       const now = new Date().toISOString();
 
-      updateConversation(convId, (c) => ({
-        ...c,
-        title: c.messages.length === 0 ? titleFromMessage(clean) : c.title,
-        messages: [...c.messages, userMessage],
-        updatedAt: now,
-      }));
+      persist(
+        list.map((c) =>
+          c.id === convId
+            ? {
+                ...c,
+                title: c.messages.length === 0 ? titleFromMessage(clean) : c.title,
+                messages: [...c.messages, userMessage],
+                updatedAt: now,
+              }
+            : c
+        )
+      );
 
       setDraft("");
+      isTypingRef.current = true;
       setIsTyping(true);
 
       await new Promise((r) => setTimeout(r, TYPING_DELAY_MS));
 
       const reply = createMessage("assistant", demoCoachReply(clean, context));
-      const replyTime = new Date().toISOString();
+      persist(
+        conversationsRef.current.map((c) =>
+          c.id === convId
+            ? {
+                ...c,
+                messages: [...c.messages, reply],
+                updatedAt: new Date().toISOString(),
+              }
+            : c
+        )
+      );
 
-      updateConversation(convId, (c) => ({
-        ...c,
-        messages: [...c.messages, reply],
-        updatedAt: replyTime,
-      }));
-
+      isTypingRef.current = false;
       setIsTyping(false);
     },
-    [context, ensureActiveConversation, isTyping, updateConversation]
+    [context, persist]
   );
-
-  const initialQuerySent = useRef(false);
 
   useEffect(() => {
     if (!hydrated || !initialQuery || initialQuerySent.current) return;
@@ -116,26 +131,27 @@ export function CoachWorkspace({ context }: { context: CoachProfileContext }) {
 
   const handleNewConversation = () => {
     const fresh = createConversation();
-    persist([fresh, ...conversations]);
+    persist([fresh, ...conversationsRef.current]);
+    activeIdRef.current = fresh.id;
     setActiveId(fresh.id);
     setDraft("");
     setSidebarOpen(false);
   };
 
   const handleDeleteConversation = (id: string) => {
-    const next = conversations.filter((c) => c.id !== id);
+    const next = conversationsRef.current.filter((c) => c.id !== id);
     persist(next);
-    if (activeId === id) {
-      setActiveId(next[0]?.id ?? null);
+    if (activeIdRef.current === id) {
+      const nextId = next[0]?.id ?? null;
+      activeIdRef.current = nextId;
+      setActiveId(nextId);
     }
   };
 
-  const showSuggestions =
-    !activeConversation || activeConversation.messages.length === 0;
+  const handleSend = () => void sendMessage(draft);
 
   return (
     <div className="flex h-[calc(100dvh-4rem)] min-h-0 flex-col lg:h-screen">
-      {/* Coach header — replaces the standard dashboard Topbar on this page */}
       <header className="flex shrink-0 items-center justify-between gap-3 border-b border-border/60 bg-surface/40 px-4 py-3 backdrop-blur-md lg:px-5">
         <div className="flex min-w-0 items-center gap-3">
           <SidebarToggle />
@@ -187,19 +203,28 @@ export function CoachWorkspace({ context }: { context: CoachProfileContext }) {
         />
 
         <main className="flex min-w-0 flex-1 flex-col bg-canvas/50">
-          <ChatThread
-            conversation={activeConversation}
-            context={context}
-            isTyping={isTyping}
-          />
-          <ChatComposer
-            value={draft}
-            onChange={setDraft}
-            onSend={() => void sendMessage(draft)}
-            disabled={isTyping}
-            showSuggestions={showSuggestions}
-            onSuggestion={(s) => void sendMessage(s)}
-          />
+          {hasMessages && activeConversation ? (
+            <CoachChat
+              conversation={activeConversation}
+              context={context}
+              draft={draft}
+              onDraftChange={setDraft}
+              onSend={handleSend}
+              isTyping={isTyping}
+            />
+          ) : (
+            <>
+              <CoachLanding context={context} />
+              <ChatComposer
+                value={draft}
+                onChange={setDraft}
+                onSend={handleSend}
+                disabled={isTyping}
+                showSuggestions
+                onSuggestion={(s) => void sendMessage(s)}
+              />
+            </>
+          )}
         </main>
 
         <CoachContextPanel context={context} />

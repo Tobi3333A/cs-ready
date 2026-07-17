@@ -16,7 +16,6 @@ function parseStored(raw: string | null): CoachConversation[] {
   }
 }
 
-/** Load all conversations from local storage. Swap for API fetch when backend ships. */
 export function loadConversations(): CoachConversation[] {
   if (!isBrowser()) return [];
   return parseStored(localStorage.getItem(STORAGE_KEY)).sort(
@@ -24,18 +23,9 @@ export function loadConversations(): CoachConversation[] {
   );
 }
 
-/** Persist the full conversation list. Swap for API sync when backend ships. */
 export function saveConversations(conversations: CoachConversation[]): void {
   if (!isBrowser()) return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(conversations));
-}
-
-export function createConversationId(): string {
-  return crypto.randomUUID();
-}
-
-export function createMessageId(): string {
-  return crypto.randomUUID();
 }
 
 export function titleFromMessage(content: string): string {
@@ -47,7 +37,7 @@ export function titleFromMessage(content: string): string {
 export function createConversation(seed?: Partial<CoachConversation>): CoachConversation {
   const now = new Date().toISOString();
   return {
-    id: createConversationId(),
+    id: crypto.randomUUID(),
     title: "New conversation",
     messages: [],
     createdAt: now,
@@ -61,7 +51,7 @@ export function createMessage(
   content: string
 ): CoachMessage {
   return {
-    id: createMessageId(),
+    id: crypto.randomUUID(),
     role,
     content,
     createdAt: new Date().toISOString(),
