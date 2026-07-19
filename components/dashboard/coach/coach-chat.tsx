@@ -1,37 +1,103 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, type UIMessage } from "ai";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChatComposer } from "@/components/dashboard/coach/chat-composer";
 import { CoachMarkdown } from "@/components/dashboard/coach/coach-markdown";
+import { getMessageText } from "@/lib/coach/message-utils";
+import type { CoachProfileContext } from "@/lib/coach/types";
 import { cn } from "@/lib/utils";
-import type { CoachConversation, CoachMessage, CoachProfileContext } from "@/lib/coach/types";
 
 export function CoachChat({
-  conversation,
+  conversationId,
+  conversationTitle,
+  initialMessages,
   context,
-  draft,
-  onDraftChange,
-  onSend,
-  isTyping = false,
+  autoSendText,
+  onAutoSendConsumed,
+  onConversationUpdated,
 }: {
-  conversation: CoachConversation;
+  conversationId: string;
+  conversationTitle: string;
+  initialMessages: UIMessage[];
   context: CoachProfileContext;
-  draft: string;
-  onDraftChange: (value: string) => void;
-  onSend: () => void;
-  isTyping?: boolean;
+  /** Optional text to send once on mount (landing composer / ?q= deep-link). */
+  autoSendText?: string | null;
+  onAutoSendConsumed?: () => void;
+  onConversationUpdated?: (info: {
+    id: string;
+    title?: string;
+    preview?: string;
+  }) => void;
 }) {
+  const [draft, setDraft] = useState("");
   const scrollerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const [stickToBottom, setStickToBottom] = useState(true);
   const [showJump, setShowJump] = useState(false);
+  const autoSendRef = useRef(false);
 
-  const messages = conversation.messages;
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/ai/chat",
+        prepareSendMessagesRequest({ messages, id }) {
+          return {
+            body: {
+              id,
+              message: messages[messages.length - 1],
+            },
+          };
+        },
+      }),
+    []
+  );
+
+  const { messages, sendMessage, status, error, clearError } = useChat({
+    id: conversationId,
+    messages: initialMessages,
+    transport,
+    onFinish: ({ messages: finalMessages }) => {
+      const lastUser = [...finalMessages].reverse().find((m) => m.role === "user");
+      const previewRaw = lastUser ? getMessageText(lastUser) : "";
+      const preview = previewRaw
+        ? previewRaw.length > 80
+          ? `${previewRaw.slice(0, 80)}…`
+          : previewRaw
+        : undefined;
+
+      let title: string | undefined;
+      if (conversationTitle === "New conversation" && lastUser) {
+        const clean = getMessageText(lastUser).trim().replace(/\s+/g, " ");
+        if (clean) {
+          title = clean.length > 42 ? `${clean.slice(0, 42)}…` : clean;
+        }
+      }
+
+      onConversationUpdated?.({
+        id: conversationId,
+        title,
+        preview,
+      });
+    },
+  });
+
+  const isBusy = status === "submitted" || status === "streaming";
+  const showTyping = status === "submitted";
+
+  useEffect(() => {
+    if (!autoSendText?.trim() || autoSendRef.current) return;
+    autoSendRef.current = true;
+    void sendMessage({ text: autoSendText.trim() }).finally(() => {
+      onAutoSendConsumed?.();
+    });
+  }, [autoSendText, onAutoSendConsumed, sendMessage]);
 
   useEffect(() => {
     if (!stickToBottom) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, isTyping, stickToBottom]);
+  }, [messages, status, stickToBottom]);
 
   const handleScroll = () => {
     const el = scrollerRef.current;
@@ -40,6 +106,25 @@ export function CoachChat({
     setStickToBottom(nearBottom);
     setShowJump(!nearBottom && messages.length > 0);
   };
+
+  const handleSend = () => {
+    const clean = draft.trim();
+    if (!clean || isBusy) return;
+    clearError();
+    void sendMessage({ text: clean });
+    setDraft("");
+  };
+
+  const displayTitle =
+    conversationTitle === "New conversation" && messages.length > 0
+      ? (() => {
+          const firstUser = messages.find((m) => m.role === "user");
+          if (!firstUser) return conversationTitle;
+          const clean = getMessageText(firstUser).trim().replace(/\s+/g, " ");
+          if (!clean) return conversationTitle;
+          return clean.length > 42 ? `${clean.slice(0, 42)}…` : clean;
+        })()
+      : conversationTitle;
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
@@ -54,7 +139,7 @@ export function CoachChat({
           <div className="mb-1 flex items-center justify-between gap-3 border-b border-border/40 pb-4">
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-foreground">
-                {conversation.title}
+                {displayTitle}
               </p>
               <p className="mt-0.5 text-[11px] text-subtle">
                 {messages.length} message{messages.length === 1 ? "" : "s"}
@@ -64,8 +149,13 @@ export function CoachChat({
               </p>
             </div>
             <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-accent-500/20 bg-accent-500/10 px-2.5 py-1 text-[10px] font-medium text-accent-400">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent-400" />
-              Live session
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full bg-accent-400",
+                  isBusy && "animate-pulse"
+                )}
+              />
+              {isBusy ? "Thinking…" : "Live session"}
             </span>
           </div>
 
@@ -74,11 +164,16 @@ export function CoachChat({
               key={message.id}
               message={message}
               userInitials={context.initials}
-              isLatest={i === messages.length - 1 && !isTyping}
+              isLatest={i === messages.length - 1 && !showTyping}
             />
           ))}
 
-          {isTyping && <TypingRow />}
+          {showTyping && <TypingRow />}
+          {error && (
+            <div className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+              {error.message || "Something went wrong. Try sending again."}
+            </div>
+          )}
           <div ref={bottomRef} className="h-px shrink-0" />
         </div>
       </div>
@@ -100,11 +195,11 @@ export function CoachChat({
 
       <ChatComposer
         value={draft}
-        onChange={onDraftChange}
-        onSend={onSend}
-        disabled={isTyping}
+        onChange={setDraft}
+        onSend={handleSend}
+        disabled={isBusy}
         placeholder="Continue the conversation…"
-        hint="Enter to send · Shift+Enter for a new line"
+        hint="Enter to send · Shift+Enter for a new line · Saved to your account"
       />
     </div>
   );
@@ -115,15 +210,12 @@ function ChatMessageRow({
   userInitials,
   isLatest,
 }: {
-  message: CoachMessage;
+  message: UIMessage;
   userInitials: string;
   isLatest?: boolean;
 }) {
   const isUser = message.role === "user";
-  const time = new Date(message.createdAt).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  const text = getMessageText(message);
 
   return (
     <div
@@ -155,10 +247,10 @@ function ChatMessageRow({
           )}
         >
           {isUser ? (
-            <p className="whitespace-pre-wrap text-white">{message.content}</p>
+            <p className="whitespace-pre-wrap text-white">{text}</p>
           ) : (
             <div className="[&_strong]:text-foreground">
-              <CoachMarkdown content={message.content} />
+              <CoachMarkdown content={text} />
             </div>
           )}
         </div>
@@ -169,10 +261,7 @@ function ChatMessageRow({
             isUser ? "justify-end" : "justify-start"
           )}
         >
-          <span className="text-[11px] text-subtle opacity-0 transition-opacity group-hover:opacity-100">
-            {time}
-          </span>
-          {!isUser && <CopyButton text={message.content} />}
+          {!isUser && text && <CopyButton text={text} />}
         </div>
       </div>
     </div>

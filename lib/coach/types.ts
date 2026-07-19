@@ -1,21 +1,3 @@
-/** Message roles — mirrors what the backend / AI SDK will use. */
-export type CoachMessageRole = "user" | "assistant";
-
-export type CoachMessage = {
-  id: string;
-  role: CoachMessageRole;
-  content: string;
-  createdAt: string;
-};
-
-export type CoachConversation = {
-  id: string;
-  title: string;
-  messages: CoachMessage[];
-  createdAt: string;
-  updatedAt: string;
-};
-
 /** Snapshot passed from the server for the context panel. */
 export type CoachProfileContext = {
   firstName: string;
@@ -24,4 +6,13 @@ export type CoachProfileContext = {
   levelLabel?: string;
   insightHeadline?: string;
   weakestCategory?: { label: string; score: number };
+};
+
+/** Sidebar / list row for a conversation (messages loaded separately). */
+export type CoachConversationSummary = {
+  id: string;
+  title: string;
+  preview: string;
+  createdAt: string;
+  updatedAt: string;
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import type { CoachConversation } from "@/lib/coach/types";
+import type { CoachConversationSummary } from "@/lib/coach/types";
 
 function formatRelativeTime(iso: string): string {
   const date = new Date(iso);
@@ -18,15 +18,6 @@ function formatRelativeTime(iso: string): string {
   return date.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
-function previewText(conversation: CoachConversation): string {
-  const last = [...conversation.messages].reverse().find((m) => m.role === "user");
-  if (last) return last.content;
-  if (conversation.messages.length > 0) {
-    return conversation.messages[conversation.messages.length - 1].content;
-  }
-  return "No messages yet";
-}
-
 export function ConversationSidebar({
   conversations,
   activeId,
@@ -36,7 +27,7 @@ export function ConversationSidebar({
   open,
   onClose,
 }: {
-  conversations: CoachConversation[];
+  conversations: CoachConversationSummary[];
   activeId: string | null;
   onSelect: (id: string) => void;
   onNew: () => void;
@@ -106,7 +97,7 @@ export function ConversationSidebar({
                         {c.title}
                       </p>
                       <p className="mt-0.5 truncate text-xs text-subtle">
-                        {previewText(c)}
+                        {c.preview || "No messages yet"}
                       </p>
                       <p className="mt-1 text-[10px] text-subtle">
                         {formatRelativeTime(c.updatedAt)}

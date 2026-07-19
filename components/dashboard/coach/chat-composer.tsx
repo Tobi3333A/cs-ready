@@ -13,7 +13,7 @@ export function ChatComposer({
   showSuggestions,
   onSuggestion,
   placeholder = "Ask your coach anything about readiness, interviews, or your roadmap…",
-  hint = "Enter to send · Shift+Enter for new line · Conversations save on this device until your account syncs",
+  hint = "Enter to send · Shift+Enter for new line · Conversations sync to your account",
 }: {
   value: string;
   onChange: (value: string) => void;

@@ -1,6 +1,12 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import type { UIMessage } from "ai";
 import { CoachWorkspace } from "@/components/dashboard/coach/coach-workspace";
+import {
+  createConversation,
+  listConversations,
+  loadChat,
+} from "@/lib/coach/chat-store";
 import { getUserInitials, levelForScore, readinessLevels } from "@/lib/constants";
 import type { CoachProfileContext } from "@/lib/coach/types";
 import { getUser } from "@/lib/supabase/getUser";
@@ -20,7 +26,11 @@ const CATEGORY_LABELS: Record<string, string> = {
   behavior: "Behavioral & Comms",
 };
 
-async function CoachPageContent() {
+async function CoachPageContent({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string | string[] }>;
+}) {
   const user = await getUser();
   if (!user) redirect("/login");
 
@@ -64,7 +74,37 @@ async function CoachPageContent() {
     };
   }
 
-  return <CoachWorkspace context={context} />;
+  const params = await searchParams;
+  const qRaw = params.q;
+  const initialAutoSend =
+    typeof qRaw === "string" ? qRaw.trim() : Array.isArray(qRaw) ? qRaw[0]?.trim() ?? "" : "";
+
+  let initialConversations: Awaited<ReturnType<typeof listConversations>> = [];
+  let initialMessages: UIMessage[] = [];
+
+  try {
+    initialConversations = await listConversations(user.id);
+
+    if (initialAutoSend) {
+      const fresh = await createConversation(user.id);
+      initialConversations = [fresh, ...initialConversations];
+      initialMessages = [];
+    } else if (initialConversations[0]) {
+      initialMessages = await loadChat(user.id, initialConversations[0].id);
+    }
+  } catch {
+    initialConversations = [];
+    initialMessages = [];
+  }
+
+  return (
+    <CoachWorkspace
+      context={context}
+      initialConversations={initialConversations}
+      initialMessages={initialMessages}
+      initialAutoSend={initialAutoSend || null}
+    />
+  );
 }
 
 function CoachLoading() {
@@ -78,10 +118,14 @@ function CoachLoading() {
   );
 }
 
-export default function CoachPage() {
+export default function CoachPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string | string[] }>;
+}) {
   return (
     <Suspense fallback={<CoachLoading />}>
-      <CoachPageContent />
+      <CoachPageContent searchParams={searchParams} />
     </Suspense>
   );
 }

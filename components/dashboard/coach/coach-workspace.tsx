@@ -1,154 +1,192 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useMemo, useState, useTransition } from "react";
+import type { UIMessage } from "ai";
+import {
+  createCoachConversation,
+  deleteCoachConversation,
+  getCoachMessages,
+} from "@/app/dashboard/coach/actions";
 import { ChatComposer } from "@/components/dashboard/coach/chat-composer";
 import { CoachChat } from "@/components/dashboard/coach/coach-chat";
 import { CoachContextPanel } from "@/components/dashboard/coach/coach-context-panel";
 import { CoachLanding } from "@/components/dashboard/coach/coach-landing";
 import { ConversationSidebar } from "@/components/dashboard/coach/conversation-sidebar";
 import { SidebarToggle } from "@/components/dashboard/sidebar";
-import { demoCoachReply } from "@/lib/coach/constants";
-import {
-  createConversation,
-  createMessage,
-  loadConversations,
-  saveConversations,
-  titleFromMessage,
-} from "@/lib/coach/storage";
-import type { CoachConversation, CoachProfileContext } from "@/lib/coach/types";
+import type {
+  CoachConversationSummary,
+  CoachProfileContext,
+} from "@/lib/coach/types";
 
-const TYPING_DELAY_MS = 900;
-
-function sortConversations(list: CoachConversation[]) {
+function sortConversations(list: CoachConversationSummary[]) {
   return [...list].sort(
     (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   );
 }
 
-export function CoachWorkspace({ context }: { context: CoachProfileContext }) {
-  const searchParams = useSearchParams();
-  const initialQuery = searchParams.get("q");
-
-  const [conversations, setConversations] = useState<CoachConversation[]>([]);
-  const [activeId, setActiveId] = useState<string | null>(null);
+export function CoachWorkspace({
+  context,
+  initialConversations,
+  initialMessages,
+  initialAutoSend = null,
+}: {
+  context: CoachProfileContext;
+  initialConversations: CoachConversationSummary[];
+  initialMessages: UIMessage[];
+  initialAutoSend?: string | null;
+}) {
+  const [conversations, setConversations] = useState(initialConversations);
+  const [activeId, setActiveId] = useState<string | null>(
+    initialConversations[0]?.id ?? null
+  );
+  const [activeMessages, setActiveMessages] = useState<UIMessage[]>(
+    initialAutoSend ? [] : initialMessages
+  );
+  const [messagesLoading, setMessagesLoading] = useState(false);
   const [draft, setDraft] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
-
-  const conversationsRef = useRef(conversations);
-  const activeIdRef = useRef(activeId);
-  const isTypingRef = useRef(isTyping);
-  const initialQuerySent = useRef(false);
-
-  conversationsRef.current = conversations;
-  activeIdRef.current = activeId;
-  isTypingRef.current = isTyping;
-
-  useEffect(() => {
-    const stored = loadConversations();
-    setConversations(stored);
-    if (stored.length > 0) setActiveId(stored[0].id);
-    setHydrated(true);
-  }, []);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const [autoSendText, setAutoSendText] = useState<string | null>(initialAutoSend);
+  /** Keeps chat view mounted after first send even once autoSendText clears. */
+  const [forceChat, setForceChat] = useState(
+    initialMessages.length > 0 || Boolean(initialAutoSend)
+  );
 
   const activeConversation = useMemo(
     () => conversations.find((c) => c.id === activeId) ?? null,
     [conversations, activeId]
   );
-  const hasMessages = Boolean(activeConversation?.messages.length);
+  const showChat =
+    Boolean(activeConversation) &&
+    (activeMessages.length > 0 || Boolean(autoSendText) || forceChat);
 
-  const persist = useCallback((next: CoachConversation[]) => {
-    const sorted = sortConversations(next);
-    conversationsRef.current = sorted;
-    setConversations(sorted);
-    saveConversations(sorted);
-  }, []);
-
-  const sendMessage = useCallback(
-    async (text: string) => {
-      const clean = text.trim();
-      if (!clean || isTypingRef.current) return;
-
-      let list = conversationsRef.current;
-      let convId = activeIdRef.current;
-
-      if (!convId || !list.some((c) => c.id === convId)) {
-        const fresh = createConversation();
-        convId = fresh.id;
-        list = [fresh, ...list];
-        activeIdRef.current = convId;
-        setActiveId(convId);
-      }
-
-      const userMessage = createMessage("user", clean);
-      const now = new Date().toISOString();
-
-      persist(
-        list.map((c) =>
-          c.id === convId
+  const handleConversationUpdated = (info: {
+    id: string;
+    title?: string;
+    preview?: string;
+  }) => {
+    setConversations((prev) =>
+      sortConversations(
+        prev.map((c) =>
+          c.id === info.id
             ? {
                 ...c,
-                title: c.messages.length === 0 ? titleFromMessage(clean) : c.title,
-                messages: [...c.messages, userMessage],
-                updatedAt: now,
-              }
-            : c
-        )
-      );
-
-      setDraft("");
-      isTypingRef.current = true;
-      setIsTyping(true);
-
-      await new Promise((r) => setTimeout(r, TYPING_DELAY_MS));
-
-      const reply = createMessage("assistant", demoCoachReply(clean, context));
-      persist(
-        conversationsRef.current.map((c) =>
-          c.id === convId
-            ? {
-                ...c,
-                messages: [...c.messages, reply],
+                title: info.title ?? c.title,
+                preview: info.preview ?? c.preview,
                 updatedAt: new Date().toISOString(),
               }
             : c
         )
-      );
+      )
+    );
+  };
 
-      isTypingRef.current = false;
-      setIsTyping(false);
-    },
-    [context, persist]
-  );
-
-  useEffect(() => {
-    if (!hydrated || !initialQuery || initialQuerySent.current) return;
-    initialQuerySent.current = true;
-    void sendMessage(initialQuery);
-  }, [hydrated, initialQuery, sendMessage]);
+  const loadMessagesFor = (id: string) => {
+    setMessagesLoading(true);
+    setError(null);
+    startTransition(async () => {
+      const result = await getCoachMessages(id);
+      if (!result.ok || !result.messages) {
+        setError(result.message ?? "Failed to load messages");
+        setActiveMessages([]);
+        setForceChat(false);
+      } else {
+        setActiveMessages(result.messages);
+        setForceChat(result.messages.length > 0);
+      }
+      setMessagesLoading(false);
+    });
+  };
 
   const handleNewConversation = () => {
-    const fresh = createConversation();
-    persist([fresh, ...conversationsRef.current]);
-    activeIdRef.current = fresh.id;
-    setActiveId(fresh.id);
-    setDraft("");
-    setSidebarOpen(false);
+    startTransition(async () => {
+      setError(null);
+      setAutoSendText(null);
+      setForceChat(false);
+      const result = await createCoachConversation();
+      if (!result.ok || !result.conversation) {
+        setError(result.message ?? "Failed to create conversation");
+        return;
+      }
+      setConversations((prev) => [result.conversation!, ...prev]);
+      setActiveId(result.conversation.id);
+      setActiveMessages([]);
+      setDraft("");
+      setSidebarOpen(false);
+    });
   };
 
   const handleDeleteConversation = (id: string) => {
-    const next = conversationsRef.current.filter((c) => c.id !== id);
-    persist(next);
-    if (activeIdRef.current === id) {
-      const nextId = next[0]?.id ?? null;
-      activeIdRef.current = nextId;
-      setActiveId(nextId);
-    }
+    startTransition(async () => {
+      setError(null);
+      const result = await deleteCoachConversation(id);
+      if (!result.ok) {
+        setError(result.message ?? "Failed to delete conversation");
+        return;
+      }
+
+      const next = conversations.filter((c) => c.id !== id);
+      setConversations(next);
+
+      if (activeId === id) {
+        setAutoSendText(null);
+        const nextId = next[0]?.id ?? null;
+        setActiveId(nextId);
+        if (nextId) {
+          loadMessagesFor(nextId);
+        } else {
+          setActiveMessages([]);
+          setForceChat(false);
+        }
+      }
+    });
   };
 
-  const handleSend = () => void sendMessage(draft);
+  const startConversationWithMessage = (text: string) => {
+    const clean = text.trim();
+    if (!clean || pending) return;
+
+    startTransition(async () => {
+      setError(null);
+      let conversationId = activeId;
+
+      const current = conversations.find((c) => c.id === conversationId);
+      const canReuse =
+        conversationId &&
+        current &&
+        !current.preview &&
+        current.title === "New conversation" &&
+        activeMessages.length === 0 &&
+        !forceChat;
+
+      if (!canReuse) {
+        const result = await createCoachConversation();
+        if (!result.ok || !result.conversation) {
+          setError(result.message ?? "Failed to create conversation");
+          return;
+        }
+        setConversations((prev) => [result.conversation!, ...prev]);
+        conversationId = result.conversation.id;
+        setActiveId(conversationId);
+        setActiveMessages([]);
+      }
+
+      setDraft("");
+      setSidebarOpen(false);
+      setForceChat(true);
+      setAutoSendText(clean);
+    });
+  };
+
+  const handleSelectConversation = (id: string) => {
+    if (id === activeId) return;
+    setAutoSendText(null);
+    setForceChat(false);
+    setActiveId(id);
+    setActiveMessages([]);
+    loadMessagesFor(id);
+  };
 
   return (
     <div className="flex h-[calc(100dvh-4rem)] min-h-0 flex-col lg:h-screen">
@@ -183,7 +221,8 @@ export function CoachWorkspace({ context }: { context: CoachProfileContext }) {
           <button
             type="button"
             onClick={handleNewConversation}
-            className="hidden h-9 items-center gap-1.5 rounded-xl border border-border px-3 text-xs font-medium text-muted transition-colors hover:bg-white/5 hover:text-foreground sm:inline-flex"
+            disabled={pending}
+            className="hidden h-9 items-center gap-1.5 rounded-xl border border-border px-3 text-xs font-medium text-muted transition-colors hover:bg-white/5 hover:text-foreground sm:inline-flex disabled:opacity-50"
           >
             <PlusIcon />
             New chat
@@ -191,11 +230,17 @@ export function CoachWorkspace({ context }: { context: CoachProfileContext }) {
         </div>
       </header>
 
+      {error && (
+        <div className="border-b border-danger/30 bg-danger/10 px-4 py-2 text-center text-xs text-danger">
+          {error}
+        </div>
+      )}
+
       <div className="flex min-h-0 flex-1">
         <ConversationSidebar
           conversations={conversations}
           activeId={activeId}
-          onSelect={setActiveId}
+          onSelect={handleSelectConversation}
           onNew={handleNewConversation}
           onDelete={handleDeleteConversation}
           open={sidebarOpen}
@@ -203,14 +248,21 @@ export function CoachWorkspace({ context }: { context: CoachProfileContext }) {
         />
 
         <main className="flex min-w-0 flex-1 flex-col bg-canvas/50">
-          {hasMessages && activeConversation ? (
+          {messagesLoading && activeId && !autoSendText && !forceChat ? (
+            <div className="flex flex-1 items-center justify-center text-sm text-muted">
+              <span className="mr-2 h-2 w-2 animate-pulse rounded-full bg-brand-400" />
+              Loading conversation…
+            </div>
+          ) : showChat && activeConversation ? (
             <CoachChat
-              conversation={activeConversation}
+              key={activeConversation.id}
+              conversationId={activeConversation.id}
+              conversationTitle={activeConversation.title}
+              initialMessages={autoSendText ? [] : activeMessages}
               context={context}
-              draft={draft}
-              onDraftChange={setDraft}
-              onSend={handleSend}
-              isTyping={isTyping}
+              autoSendText={autoSendText}
+              onAutoSendConsumed={() => setAutoSendText(null)}
+              onConversationUpdated={handleConversationUpdated}
             />
           ) : (
             <>
@@ -218,10 +270,11 @@ export function CoachWorkspace({ context }: { context: CoachProfileContext }) {
               <ChatComposer
                 value={draft}
                 onChange={setDraft}
-                onSend={handleSend}
-                disabled={isTyping}
+                onSend={() => startConversationWithMessage(draft)}
+                disabled={pending}
                 showSuggestions
-                onSuggestion={(s) => void sendMessage(s)}
+                onSuggestion={(s) => startConversationWithMessage(s)}
+                hint="Enter to send · Shift+Enter for new line · Conversations sync to your account"
               />
             </>
           )}

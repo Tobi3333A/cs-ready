@@ -1,79 +1,166 @@
+import {
+  convertToModelMessages,
+  createUIMessageStreamResponse,
+  streamText,
+  toUIMessageStream,
+  type UIMessage,
+} from "ai";
+import { assertConversationOwner, loadChat, saveChat } from "@/lib/coach/chat-store";
 import { getUser } from "@/lib/supabase/getUser";
 import { createClient } from "@/lib/supabase/server";
-import { convertToModelMessages, streamText,  } from "ai";
-import { redirect } from "next/navigation";
 
 export async function POST(req: Request) {
+  const user = await getUser();
+  if (!user) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-    const { messages } = await req.json();
+  const body = await req.json();
+  const conversationId = (body.id ?? body.chatId) as string | undefined;
+  const incomingMessage = body.message as UIMessage | undefined;
+  const incomingMessages = body.messages as UIMessage[] | undefined;
 
-    const user = await getUser();
-    if (!user) redirect('/login');
+  if (!conversationId) {
+    return Response.json({ error: "Missing conversation id" }, { status: 400 });
+  }
 
-    const supabase = await createClient();
+  const owns = await assertConversationOwner(user.id, conversationId);
+  if (!owns) {
+    return Response.json({ error: "Conversation not found" }, { status: 404 });
+  }
 
-    const [
-        { data: profile, error: profileErr },
-        { data: readiness, error: readinessErr },
-        { data: roadmap, error: roadmapErr }
-    ] = await Promise.all([
-        supabase
-            .from('profiles')
-            .select('full_name, school, skills, target, grade')
-            .eq('id', user.id)
-            .single(),
-        supabase
-            .from('readiness_breakdown')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle(),
-        supabase
-            .from('roadmap')
-            .select(`*`)
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-    ]);
+  let messages: UIMessage[];
 
-    if (profileErr) return Response.json({ error: 'Error fetching user profile' }, { status: 200 });
-    if (readinessErr) return Response.json({ error: 'Error fetching user\'s readiness breakdon' }, { status: 200 });
-    if (roadmapErr) return Response.json({ error: 'Error fetching user roadmap' }, { status: 200 });
+  if (incomingMessage) {
+    const previousMessages = await loadChat(user.id, conversationId);
+    messages = [...previousMessages, incomingMessage];
+  } else if (Array.isArray(incomingMessages) && incomingMessages.length > 0) {
+    messages = incomingMessages;
+  } else {
+    return Response.json({ error: "Missing message" }, { status: 400 });
+  }
 
-    const studentContext = {
-        profile: {
-            name: profile.full_name,
-            grade: profile.grade,
-            school: profile.school,
-            targetRoles: profile.target,
-            skills: profile.skills
-        },
-        studentReadiness: readiness
-            ? {
-                overallReadiness: readiness.overall_readiness,
-                categories: {
-                    dsa: readiness.dsa,
-                    projects: readiness.projects,
-                    github: readiness.github,
-                    systemDesign: readiness.system,
-                    resume: readiness.resume,
-                    behavioral: readiness.behavior,
-                },
-                insightHeadline: readiness.insight_headline,
-                insights: readiness.insights,
-                roleFits: readiness.role_fits,
-            }
-            : null,
-        latestRoadmap: roadmap
-            ? {
+  const supabase = await createClient();
 
-            }
-            : null
+  const [
+    { data: profile, error: profileErr },
+    { data: readiness, error: readinessErr },
+    { data: roadmap, error: roadmapErr },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("full_name, school, skills, target, grade")
+      .eq("id", user.id)
+      .single(),
+    supabase
+      .from("readiness_breakdown")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("roadmap")
+      .select("id, target, now, goal, is_done, created_at")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  if (profileErr) {
+    return Response.json({ error: "Error fetching user profile" }, { status: 500 });
+  }
+  if (readinessErr) {
+    return Response.json(
+      { error: "Error fetching user's readiness breakdown" },
+      { status: 500 }
+    );
+  }
+  if (roadmapErr) {
+    return Response.json({ error: "Error fetching user roadmap" }, { status: 500 });
+  }
+
+  let latestRoadmap: {
+    target: string;
+    now: number;
+    goal: number;
+    isDone: boolean;
+    steps: Array<{
+      title: string;
+      description: string;
+      timeline: string;
+      isDone: boolean;
+      tasks: Array<{ task: string; isDone: boolean }>;
+    }>;
+  } | null = null;
+
+  if (roadmap) {
+    const { data: steps } = await supabase
+      .from("roadmap_steps")
+      .select("id, title, description, timeline, is_done, sort_order")
+      .eq("roadmap_id", roadmap.id)
+      .order("sort_order", { ascending: true });
+
+    const stepRows = steps ?? [];
+    const stepIds = stepRows.map((s) => s.id);
+    const { data: taskRows } = stepIds.length
+      ? await supabase
+          .from("roadmap_tasks")
+          .select("roadmap_step_id, task, is_done")
+          .in("roadmap_step_id", stepIds)
+      : { data: [] as Array<{ roadmap_step_id: string; task: string; is_done: boolean }> };
+
+    const tasksByStep = new Map<string, Array<{ task: string; isDone: boolean }>>();
+    for (const task of taskRows ?? []) {
+      const list = tasksByStep.get(task.roadmap_step_id) ?? [];
+      list.push({ task: task.task, isDone: task.is_done });
+      tasksByStep.set(task.roadmap_step_id, list);
     }
 
-    const systemPrompt = `You are the AI Coach for CS-Ready — a readiness platform that helps computer science students land software engineering internships and new-grad roles.
+    latestRoadmap = {
+      target: roadmap.target,
+      now: roadmap.now,
+      goal: roadmap.goal,
+      isDone: roadmap.is_done,
+      steps: stepRows.map((step) => ({
+        title: step.title,
+        description: step.description,
+        timeline: step.timeline,
+        isDone: step.is_done,
+        tasks: tasksByStep.get(step.id) ?? [],
+      })),
+    };
+  }
+
+  const studentContext = {
+    profile: {
+      name: profile.full_name,
+      grade: profile.grade,
+      school: profile.school,
+      targetRoles: profile.target,
+      skills: profile.skills,
+    },
+    studentReadiness: readiness
+      ? {
+          overallReadiness: readiness.overall_readiness,
+          categories: {
+            dsa: readiness.dsa,
+            projects: readiness.projects,
+            github: readiness.github,
+            systemDesign: readiness.system,
+            resume: readiness.resume,
+            behavioral: readiness.behavior,
+          },
+          insightHeadline: readiness.insight_headline,
+          insights: readiness.insights,
+          roleFits: readiness.role_fits,
+        }
+      : null,
+    latestRoadmap,
+  };
+
+  const systemPrompt = `You are the AI Coach for CS-Ready — a readiness platform that helps computer science students land software engineering internships and new-grad roles.
 
 You chat one-on-one with a student. Your job is to give honest, specific, actionable career and interview-prep advice grounded in their data when you have it — not generic motivational fluff.
 
@@ -118,11 +205,26 @@ When \`latestRoadmap\` is present, help them understand, prioritize, or adapt it
 
 Answer the student's latest message. Stay conversational — you are in an ongoing chat, not writing a report.`;
 
-    const result = streamText({
-        model: 'openai/gpt-4.1-mini',
-        system: systemPrompt,
-        messages: await convertToModelMessages(messages),
-    });
+  const result = streamText({
+    model: "openai/gpt-4.1-mini",
+    system: systemPrompt,
+    messages: await convertToModelMessages(messages),
+  });
 
-    return result.toUIMessageStreamResponse();
+  // Ensure the stream completes and onEnd saves even if the client disconnects
+  result.consumeStream();
+
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      originalMessages: messages,
+      onEnd: async ({ messages: finalMessages }) => {
+        await saveChat({
+          userId: user.id,
+          chatId: conversationId,
+          messages: finalMessages,
+        });
+      },
+    }),
+  });
 }
