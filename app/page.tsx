@@ -122,12 +122,12 @@ export default function Home() {
                 steps to raise it.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Button href="/signup" size="lg">
-                  Get your readiness score
+                <Button href="/dashboard" size="lg">
+                  Go to dashboard
                   <span aria-hidden>→</span>
                 </Button>
-                <Button href="/dashboard" variant="outline" size="lg">
-                  View live demo
+                <Button href="/signup" variant="outline" size="lg">
+                  Sign up
                 </Button>
               </div>
               <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-subtle">

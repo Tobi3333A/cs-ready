@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
-import { SocialButtons } from "@/components/ui/social-buttons";
 import { login } from "./actions";
 
 export function LoginClient() {
@@ -18,8 +17,6 @@ export function LoginClient() {
           Log in to see your latest readiness score.
         </p>
       </div>
-
-      <SocialButtons verb="Continue" />
 
       <div className="flex items-center gap-3 text-xs text-subtle">
         <span className="h-px flex-1 bg-border" />

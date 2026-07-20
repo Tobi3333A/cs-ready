@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/input";
-import { SocialButtons } from "@/components/ui/social-buttons";
 import { signup } from "./actions";
 
 export function SignupClient() {
@@ -18,8 +17,6 @@ export function SignupClient() {
           Start measuring your internship &amp; job readiness today.
         </p>
       </div>
-
-      <SocialButtons verb="Sign up" />
 
       <div className="flex items-center gap-3 text-xs text-subtle">
         <span className="h-px flex-1 bg-border" />
