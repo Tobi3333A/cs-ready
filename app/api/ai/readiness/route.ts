@@ -1,6 +1,7 @@
 import { getUser } from '@/lib/supabase/getUser';
 import { createClient } from '@/lib/supabase/server';
-import { Output, generateText, gateway, stepCountIs } from 'ai';
+import { Output, generateText, stepCountIs } from 'ai';
+import { searchTool, extractTool } from '@parallel-web/ai-sdk-tools';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 
@@ -78,7 +79,7 @@ export async function POST() {
     console.log('[readiness] profileLinks', profileLinks);
 
     const { output, steps } = await generateText({
-        model: 'openai/gpt-4.1-mini',
+        model: 'openai/gpt-5.6-sol',
         stopWhen: stepCountIs(8),
         onStepEnd({ stepNumber, finishReason, toolCalls, toolResults }) {
             console.log(
@@ -143,9 +144,8 @@ After finishing research, output only the structured object matching the schema.
             })
         }),
         tools: {
-            perplexity_search: gateway.tools.perplexitySearch({
-                maxResults: 5,
-            }),
+            webSearch: searchTool,
+            webExtract: extractTool
         },
     });
 
