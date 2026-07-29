@@ -18,12 +18,6 @@ export function SignupClient() {
         </p>
       </div>
 
-      <div className="flex items-center gap-3 text-xs text-subtle">
-        <span className="h-px flex-1 bg-border" />
-        or with email
-        <span className="h-px flex-1 bg-border" />
-      </div>
-
       <form className="space-y-4" action={formAction}>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="First name" htmlFor="firstName">
