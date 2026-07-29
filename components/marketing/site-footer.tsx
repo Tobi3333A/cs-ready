@@ -11,20 +11,19 @@ const columns = [
       { label: "Dashboard", href: "/dashboard" },
     ],
   },
-  {
-    title: "Resources",
-    links: [
-      { label: "Interview guide", href: "#" },
-      { label: "Roadmaps", href: "#" },
-      { label: "Blog", href: "#" },
-      { label: "Changelog", href: "#" },
-    ],
-  },
+  // {
+  //   title: "Resources",
+  //   links: [
+  //     { label: "Interview guide", href: "#" },
+  //     { label: "Roadmaps", href: "#" },
+  //     { label: "Blog", href: "#" },
+  //     { label: "Changelog", href: "#" },
+  //   ],
+  // },
   {
     title: "Company",
     links: [
-      { label: "About", href: "#" },
-      { label: "Careers", href: "#" },
+      { label: "Chadashiel", href: "https://chadashiel.com" },
       { label: "Privacy", href: "#" },
       { label: "Terms", href: "#" },
     ],
@@ -63,7 +62,7 @@ export function SiteFooter() {
       <div className="border-t border-border/60">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-5 py-6 text-sm text-subtle sm:flex-row">
           <p>© {new Date().getFullYear()} CS-Ready. Built for students, by students.</p>
-          <p>Made with intention · Not affiliated with any employer.</p>
+          <p>This is a product of Chadashiel Education.</p>
         </div>
       </div>
     </footer>
