@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CS-Ready
 
-## Getting Started
+Know if you're actually ready for that internship — or new-grad role. CS-Ready is an AI coach for CS students: connect the same signals recruiters look at, get an honest readiness score, and work a plan built for your gaps.
 
-First, run the development server:
+## How it works
+
+1. **Create your profile** — Target roles, school, and where you are today
+2. **Connect your signals** — GitHub, LeetCode, LinkedIn, portfolio, resume, transcript
+3. **Get your readiness score** — Strengths and gaps across the categories that matter, plus role fit
+4. **Follow your roadmap** — Ranked actions tailored to your targets; keep going with the AI coach
+
+## Features
+
+- **Integrations** — Link GitHub, LeetCode, LinkedIn, and portfolio; upload resume and transcript
+- **Readiness breakdown** — Scores for DSA, Projects, GitHub, System Design, Resume, and Behavioral, with role-fit guidance
+- **Personalized roadmap** — Week-by-week steps and tasks aimed at closing your real gaps
+- **AI coach** — Multi-conversation chat grounded in your profile and progress
+
+## Stack
+
+- [Next.js](https://nextjs.org) 16 (App Router) + React 19 + TypeScript
+- Tailwind CSS v4
+- [Supabase](https://supabase.com) (Auth, database, storage)
+- [Vercel AI SDK](https://sdk.vercel.ai) via AI Gateway
+- [Parallel](https://parallel.ai) web tools for readiness research
+
+## Getting started
+
+### Prerequisites
+
+- Node.js
+- [pnpm](https://pnpm.io)
+- A [Supabase](https://supabase.com) project
+- A [Vercel AI Gateway](https://vercel.com/docs/ai-gateway) API key
+- A [Parallel](https://platform.parallel.ai/settings?tab=api-keys) API key
+
+### Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Fill in `.env.local` (see [`.env.example`](.env.example)):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable/anon key |
+| `AI_GATEWAY_API_KEY` | Vercel AI Gateway (used by the AI SDK for model calls) |
+| `PARALLEL_API_KEY` | Parallel web search/extract for readiness analysis |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Supabase schema
 
-## Learn More
+This repo includes generated types in [`supabase/types.ts`](supabase/types.ts) and local Supabase config, but **no SQL migrations**. Provision Auth and a schema that matches those types yourself, including:
 
-To learn more about Next.js, take a look at the following resources:
+- Tables: `profiles`, `integrations`, `readiness_breakdown`, `roadmap`, `roadmap_steps`, `roadmap_tasks`, `coach_conversations`, `coach_messages`
+- Storage buckets: `resumes`, `transcripts`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Run
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+pnpm dev
+```
 
-## Deploy on Vercel
+Open [http://localhost:3000](http://localhost:3000).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Project structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+app/            # App Router: marketing, auth, dashboard; AI routes under app/api/ai/
+components/     # UI, marketing, and dashboard components
+lib/            # Supabase clients, constants, integrations, coach helpers
+supabase/       # Local Supabase config and generated DB types
+```
+
+## License
+
+Open source under the [MIT License](LICENSE).
