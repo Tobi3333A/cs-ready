@@ -20,7 +20,6 @@ type ScoreCategory = {
   key: string;
   label: string;
   score: number;
-  summary: string;
   icon: string;
 };
 
@@ -69,42 +68,36 @@ export default async function DashboardPage() {
       key: "dsa",
       label: "Data Structures & Algorithms",
       score: readiness.dsa,
-      summary: "Solid on arrays & trees. Graphs and DP need reps.",
       icon: "🧠",
     },
     {
       key: "projects",
       label: "Projects & Portfolio",
       score: readiness.projects,
-      summary: "Two strong full-stack projects with live demos.",
       icon: "🚀",
     },
     {
       key: "github",
       label: "Open Source & GitHub",
       score: readiness.github,
-      summary: "Consistent commits, but READMEs could go deeper.",
       icon: "🐙",
     },
     {
       key: "systemdesign",
       label: "System Design",
       score: readiness.system,
-      summary: "Good fundamentals; practice scaling & trade-offs.",
       icon: "🏗️",
     },
     {
       key: "resume",
       label: "Resume & Experience",
       score: readiness.resume,
-      summary: "Quantified impact well. Trim to a single page.",
       icon: "📄",
     },
     {
       key: "behavioral",
       label: "Behavioral & Comms",
       score: readiness.behavior,
-      summary: "Clear STAR stories. Add more leadership examples.",
       icon: "💬",
     },
   ];
@@ -213,7 +206,6 @@ export default async function DashboardPage() {
                   </span>
                 </div>
                 <Progress value={c.score} className="mt-3" />
-                <p className="mt-3 text-xs text-muted">{c.summary}</p>
               </div>
             ))}
           </CardBody>
