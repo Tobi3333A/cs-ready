@@ -34,11 +34,6 @@ export function LoginClient() {
         <Field
           label="Password"
           htmlFor="password"
-          hint={
-            <Link href="#" className="text-brand-300 hover:text-brand-200">
-              Forgot?
-            </Link>
-          }
         >
           <Input
             id="password"

@@ -14,7 +14,7 @@ export async function profile(_prevState: FormState, formData: FormData): Promis
     const skills = String(formData.get('skills') ?? '[]');
     const target = String(formData.get('target') ?? '[]');
 
-    if (!name || !grade) return { ok: false, message: 'Please put in your name and grade' };
+    if (!name || !grade || !school) return { ok: false, message: 'Please put in your name, grade, and school' };
 
     const supabase = await createClient();
 
@@ -23,6 +23,7 @@ export async function profile(_prevState: FormState, formData: FormData): Promis
         .update({
             full_name: name,
             grade,
+            school,
             skills: JSON.parse(skills) as string[],
             target: JSON.parse(target) as string[]
         })

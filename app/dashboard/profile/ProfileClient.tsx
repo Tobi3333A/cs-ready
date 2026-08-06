@@ -23,6 +23,7 @@ type User = {
 export function ProfileForm({ user }: { user: User }) {
   const [name, setName] = useState<string>(user.full_name);
   const [grade, setGrade] = useState<string>(user.grade);
+  const [school, setSchool] = useState<string>(user.school);
   const [roles, setRoles] = useState<string[]>(user.target ?? []);
   const [skills, setSkills] = useState<string[]>(user.skills ?? []);
   const [state, formAction] = useActionState(profile, { ok: false });
@@ -64,7 +65,7 @@ export function ProfileForm({ user }: { user: User }) {
             <Input id="email" type="email" defaultValue={user.email} disabled />
           </Field>
           <Field label="School" htmlFor="school">
-            <Input id="school" defaultValue={user.school} disabled />
+            <Input id="school" value={school} onChange={({target}) => setSchool(target.value)} />
           </Field>
           <Field label="Grade" htmlFor="grade">
             <Select id="grad" value={grade} onChange={({target}) => setGrade(target.value)}>
