@@ -1,5 +1,11 @@
 import { getUser } from "@/lib/supabase/getUser";
 import { createClient } from "@/lib/supabase/server";
+import {
+    buildStudentContext,
+    buildUserContentWithFiles,
+    describeAttachedFiles,
+    fetchStudentSignals,
+} from "@/lib/ai/student-signals";
 import { Output, generateText, gateway, stepCountIs } from "ai";
 import { revalidatePath } from "next/cache";
 import { z } from 'zod'
@@ -8,71 +14,11 @@ export async function POST() {
     const user = await getUser();
     if (!user) return Response.json({ error: 'You must be signed in' }, { status: 200 });
 
-    const supabase = await createClient();
+    const signals = await fetchStudentSignals(user.id);
+    if (!signals.ok) return Response.json({ error: signals.error }, { status: 200 });
 
-    const [
-        { data: integrations, error: integrationsErr },
-        { data: readiness, error: readinessErr },
-        { data: profile, error: profileErr },
-    ] = await Promise.all([
-        supabase
-            .from('integrations')
-            .select('github, leetcode, linkedin, portfolio')
-            .eq('user_id', user.id)
-            .maybeSingle(),
-        supabase
-            .from('readiness_breakdown')
-            .select('overall_readiness, dsa, projects, github, system, resume, behavior, insight_headline, insights, role_fits')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle(),
-        supabase
-            .from('profiles')
-            .select('full_name, grade, school, skills, target')
-            .eq('id', user.id)
-            .single(),
-    ]);
-
-    if (integrationsErr) return Response.json({ error: 'Error fetching user integrations' }, { status: 200 });
-    if (readinessErr) return Response.json({ error: 'Error fetching readiness scores' }, { status: 200 });
-    if (profileErr) return Response.json({ error: 'Error fetching profile' }, { status: 200 });
-
-    const profileLinks = Object.fromEntries(
-        Object.entries({
-            github: integrations?.github ?? null,
-            leetcode: integrations?.leetcode ?? null,
-            linkedin: integrations?.linkedin ?? null,
-            portfolio: integrations?.portfolio ?? null,
-        }).filter(([, url]) => typeof url === 'string' && url.trim().length > 0)
-    );
-
-    const studentContext = {
-        profile: {
-                name: profile.full_name,
-                grade: profile.grade,
-                school: profile.school,
-                skills: profile.skills ?? [],
-                targetRoles: profile.target ?? [],
-            },
-        readiness: readiness
-            ? {
-                overall: readiness.overall_readiness,
-                categories: {
-                    dsa: readiness.dsa,
-                    projects: readiness.projects,
-                    github: readiness.github,
-                    systemDesign: readiness.system,
-                    resume: readiness.resume,
-                    behavioral: readiness.behavior,
-                },
-                insightHeadline: readiness.insight_headline,
-                insights: readiness.insights,
-                roleFits: readiness.role_fits,
-            }
-            : null,
-        profileLinks,
-    };
+    const { files, profileLinks } = signals.data;
+    const studentContext = buildStudentContext(signals.data);
 
     console.log('[roadmap] profileLinks', profileLinks);
 
@@ -89,7 +35,7 @@ export async function POST() {
                 )
             );
         },
-        prompt: `You are an expert career coach for CS-Ready, an AI readiness platform that helps computer science students land software engineering internships and new-grad roles.
+        system: `You are an expert career coach for CS-Ready, an AI readiness platform that helps computer science students land software engineering internships and new-grad roles.
 
 Your job is to produce a personalized roadmap that moves a student from their current readiness score to a competitive or standout level (85+). Readiness is scored 0–100 across six categories: Data Structures & Algorithms, Projects & Portfolio, Open Source & GitHub, System Design, Resume & Experience, and Behavioral & Communication skills.
 
@@ -97,6 +43,13 @@ You decide the timeframe and cadence. Do NOT default to any fixed length—choos
 
 Student context (JSON):
 ${JSON.stringify(studentContext)}
+
+Attached documents:
+- The user message may include file parts for resume and/or transcript. Keys present in attachedFiles are the documents actually attached (resume, transcript).
+- READ every attached file before writing tasks. Use the resume for experience gaps and concrete resume/portfolio tasks. Use the transcript for coursework-aware tasks when present.
+- If attachedFiles has no resume key, do not invent resume content; note the gap when resume work is relevant.
+- If attachedFiles has no transcript key, do not invent coursework.
+- Do not claim you read a document that is not listed in attachedFiles / not present as a file part.
 
 Research rules:
 - For each URL in profileLinks, call perplexity_search to inspect that profile before writing tasks.
@@ -107,7 +60,8 @@ Research rules:
 - After results return, keep ONLY pages whose URL clearly belongs to that same profile/username/path. Discard lookalikes (e.g. github.com/tobi/... is NOT github.com/Tobi3333A/...).
 - If no result clearly matches the linked profile, treat that signal as UNVERIFIED—not empty. Say the profile could not be verified from search. Do not invent repo counts, READMEs, or claim the account is empty.
 - Skip keys that are missing from profileLinks—do not invent GitHub repos, LeetCode stats, jobs, or projects.
-- Base concrete tasks on verified search evidence plus the readiness/profile data above. Prefer readiness scores and profile fields when search is unverified.
+- LeetCode special case: if profileLinks.leetcode is present but the profile cannot be found or verified, EXCLUDE LeetCode from planning entirely. Do not invent problem counts or build DSA tasks as if you saw that profile. Prefer readiness.categories.dsa and other verified sources instead. You may briefly note that LeetCode could not be verified.
+- Base concrete tasks on: (1) attached resume/transcript content when present, (2) verified search evidence for linked profiles, and (3) readiness/profile data above. Prefer readiness scores and profile fields when search is unverified.
 - If readiness is present, set now to overall and prioritize the lowest category scores first.
 - If readiness is null, estimate now conservatively from available signals and note uncertainty only in task specificity—not in the schema fields.
 - Align the target sentence and goal with the student's targetRoles when available.
@@ -122,7 +76,7 @@ Guidelines:
 - now and goal must be integers from 0 to 100 representing overall readiness scores. goal should typically be 85 or higher.
 - target must be one motivating sentence summarizing the journey, including the timeframe you chose (e.g., "Reach an 85+ readiness score in 3 weeks for Software Engineer Intern interviews").
 - timeline labels must reflect the cadence you chose and stay consistent across steps (e.g., "Week 1", "Week 2" for a weekly plan, or "Day 1", "Day 2" for a short daily sprint).
-- Titles should be short and action-oriented. Descriptions must be 1–2 sentences and MUST ground the reason in a specific observation from THIS student's data—cite readiness scores, profile fields, or verified connected-profile evidence (e.g. "Your DSA score of 42 is your lowest category", "Search could not verify your GitHub link, so prioritize making repos discoverable"). Do not invent empty-profile details. If a signal was missing or unverified, say that plainly.
+- Titles should be short and action-oriented. Descriptions must be 1–2 sentences and MUST ground the reason in a specific observation from THIS student's data—cite readiness scores, attached document details, profile fields, or verified connected-profile evidence (e.g. "Your DSA score of 42 is your lowest category", "Search could not verify your GitHub link, so prioritize making repos discoverable"). Do not invent empty-profile details. If a signal was missing or unverified, say that plainly.
 - Be direct, encouraging, and practical—no filler or generic platitudes.
 
 After finishing research, output only the structured object matching the schema. Do not include markdown, commentary, or text outside the schema.`,
@@ -151,6 +105,16 @@ After finishing research, output only the structured object matching the schema.
                 maxResults: 5,
             }),
         },
+        messages: [
+            {
+                role: 'user',
+                content: buildUserContentWithFiles(
+                    files,
+                    `Generate my personalized roadmap. Attached documents: ${describeAttachedFiles(files)}. Read them before writing tasks.`,
+                    'Generate my personalized roadmap. No resume or transcript is attached.'
+                ),
+            },
+        ],
     });
 
     console.log(
@@ -172,6 +136,7 @@ After finishing research, output only the structured object matching the schema.
         return Response.json({ error: 'Failed to generate roadmap' }, { status: 200 });
     }
 
+    const supabase = await createClient();
     const { data: roadmap, error: roadmapErr } = await supabase
         .from('roadmap')
         .insert({
