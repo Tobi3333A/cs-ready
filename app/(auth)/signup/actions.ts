@@ -14,10 +14,11 @@ export async function signup(
   const firstName = String(formData.get("firstName") ?? "").trim();
   const lastName = String(formData.get("lastName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
+  const school = String(formData.get("school") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const grade = String(formData.get("grade") ?? "Freshman");
 
-  if (!firstName || !lastName || !email || !password) {
+  if (!firstName || !lastName || !email || !school || !password) {
     return { ok: false, message: "Please fill in all required fields." };
   }
 
@@ -34,6 +35,7 @@ export async function signup(
     options: {
       data: {
         full_name: fullName,
+        school,
         grade,
       },
     },

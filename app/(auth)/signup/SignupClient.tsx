@@ -52,6 +52,16 @@ export function SignupClient() {
           />
         </Field>
 
+        <Field label="School" htmlFor="school">
+          <Input
+            id="school"
+            name="school"
+            placeholder="Stanford University"
+            autoComplete="organization"
+            required
+          />
+        </Field>
+
         <Field label="Grade" htmlFor="grade">
           <Select id="grade" name="grade" defaultValue="Freshman">
             <option>Freshman</option>
