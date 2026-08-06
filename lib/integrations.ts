@@ -7,6 +7,7 @@ export type StoredFile = {
   fileName: string;
   fileSize: number;
   mimeType: string;
+  providerReference: Record<string, string>;
 };
 
 export const LINK_KEYS = ["github", "leetcode", "linkedin", "portfolio"] as const;
@@ -36,7 +37,8 @@ export function parseStoredFile(value: unknown): StoredFile | null {
   if (
     typeof file.path !== "string" ||
     typeof file.fileName !== "string" ||
-    typeof file.fileSize !== "number"
+    typeof file.fileSize !== "number" ||
+    typeof file.providerReference !== "object"
   ) {
     return null;
   }
@@ -45,6 +47,7 @@ export function parseStoredFile(value: unknown): StoredFile | null {
     fileName: file.fileName,
     fileSize: file.fileSize,
     mimeType: typeof file.mimeType === "string" ? file.mimeType : "",
+    providerReference: file.providerReference as Record<string, string>,
   };
 }
 

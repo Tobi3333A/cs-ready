@@ -11,8 +11,8 @@ Know if you're actually ready for that internship — or new-grad role. CS-Ready
 
 ## Features
 
-- **Integrations** — Link GitHub, LeetCode, LinkedIn, and portfolio; upload resume and transcript
-- **Readiness breakdown** — Scores for DSA, Projects, GitHub, System Design, Resume, and Behavioral, with role-fit guidance
+- **Integrations** — Link GitHub, LeetCode, LinkedIn, and portfolio; upload resume and transcript (stored in Supabase and uploaded to OpenAI for analysis)
+- **Readiness breakdown** — Scores for DSA, Projects, GitHub, System Design, Resume, and Behavioral, with role-fit guidance; reads attached docs and researches linked profiles
 - **Personalized roadmap** — Week-by-week steps and tasks aimed at closing your real gaps
 - **AI coach** — Multi-conversation chat grounded in your profile and progress
 
@@ -21,7 +21,7 @@ Know if you're actually ready for that internship — or new-grad role. CS-Ready
 - [Next.js](https://nextjs.org) 16 (App Router) + React 19 + TypeScript
 - Tailwind CSS v4
 - [Supabase](https://supabase.com) (Auth, database, storage)
-- [Vercel AI SDK](https://sdk.vercel.ai) via AI Gateway
+- [Vercel AI SDK](https://sdk.vercel.ai) with [@ai-sdk/openai](https://www.npmjs.com/package/@ai-sdk/openai) (readiness) and [AI Gateway](https://vercel.com/docs/ai-gateway) (coach + roadmap)
 - [Parallel](https://parallel.ai) web tools for readiness research
 
 ## Getting started
@@ -31,6 +31,7 @@ Know if you're actually ready for that internship — or new-grad role. CS-Ready
 - Node.js
 - [pnpm](https://pnpm.io)
 - A [Supabase](https://supabase.com) project
+- An [OpenAI](https://platform.openai.com/api-keys) API key
 - A [Vercel AI Gateway](https://vercel.com/docs/ai-gateway) API key
 - A [Parallel](https://platform.parallel.ai/settings?tab=api-keys) API key
 
@@ -47,15 +48,18 @@ Fill in `.env.local` (see [`.env.example`](.env.example)):
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable/anon key |
-| `AI_GATEWAY_API_KEY` | Vercel AI Gateway (used by the AI SDK for model calls) |
-| `PARALLEL_API_KEY` | Parallel web search/extract for readiness analysis |
+| `OPENAI_API_KEY` | OpenAI — readiness scoring and resume/transcript `uploadFile` |
+| `AI_GATEWAY_API_KEY` | Vercel AI Gateway — coach chat and roadmap generation |
+| `PARALLEL_API_KEY` | Parallel web search/extract for readiness research |
 
 ### Supabase schema
 
-This repo includes generated types in [`supabase/types.ts`](supabase/types.ts) and local Supabase config, but **no SQL migrations**. Provision Auth and a schema that matches those types yourself, including:
+This repo includes generated types in [`supabase/types.ts`](supabase/types.ts) and local Supabase config, but **no SQL migrations**. Set up Auth and a schema that matches those types yourself, including:
 
 - Tables: `profiles`, `integrations`, `readiness_breakdown`, `roadmap`, `roadmap_steps`, `roadmap_tasks`, `coach_conversations`, `coach_messages`
 - Storage buckets: `resumes`, `transcripts`
+
+The `integrations.resume` / `integrations.transcript` columns store JSON metadata (path, file name, size, mime type, and OpenAI `providerReference`).
 
 ### Run
 

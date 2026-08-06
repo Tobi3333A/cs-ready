@@ -12,6 +12,9 @@ import {
   parseStoredFile,
 } from "@/lib/integrations";
 import type { FormState } from "@/lib/types";
+import { uploadFile } from "ai";
+import { openai } from "@ai-sdk/openai";
+import fs from "fs";
 
 const MAX_BYTES = 10 * 1024 * 1024;
 
@@ -133,11 +136,26 @@ export async function uploadIntegrationFile(key: string, formData: FormData): Pr
 
   if (uploadError) return { ok: false, message: "Upload failed" };
 
+  async function readBlobBytes(blob: Blob): Promise<Uint8Array> {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    if (!bytes.length) {
+      throw new Error('File is empty.');
+    }
+    return bytes;
+  }
+
+  const { providerReference } = await uploadFile({
+    api: openai,
+    data: await readBlobBytes(file),
+    filename: file.name,
+  })
+
   const meta: StoredFile = {
     path,
     fileName: file.name,
     fileSize: file.size,
     mimeType: file.type,
+    providerReference: providerReference,
   };
 
   const { error } = await upsertFileMeta(auth.user.id, key, meta);
