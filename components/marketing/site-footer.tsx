@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
+import { GitHubStarButton } from "@/components/marketing/github-star-button";
 
 const columns = [
   {
@@ -40,6 +41,7 @@ export function SiteFooter() {
             The AI readiness coach that tells CS students exactly how close they are
             to landing the internship or job they want.
           </p>
+          <GitHubStarButton />
         </div>
         {columns.map((col) => (
           <div key={col.title}>

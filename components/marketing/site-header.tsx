@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
+import { GitHubStarButton } from "@/components/marketing/github-star-button";
 
 const navLinks = [
   { href: "#features", label: "Features" },
@@ -26,6 +27,7 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
+          <GitHubStarButton />
           <Button href="/login" variant="ghost" size="sm" className="hidden sm:inline-flex">
             Log in
           </Button>

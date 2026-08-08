@@ -1,3 +1,5 @@
+export const GITHUB_REPO_URL = "https://github.com/Tobi3333A/cs-ready";
+
 export type ReadinessLevel = "emerging" | "developing" | "competitive" | "standout";
 
 export type IntegrationInputType = "link" | "upload";
