@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 type FormState = {
   ok: boolean;
@@ -45,5 +46,5 @@ export async function signup(
     return { ok: false, message: error.message };
   }
 
-  return { ok: true, message: 'Signup successful! You should receive a verification email.'}
+  redirect('/dashboard');
 }
