@@ -48,6 +48,7 @@ Fill in `.env.local` (see [`.env.example`](.env.example)):
 | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable/anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key — server-only; used for account deletion |
 | `OPENAI_API_KEY` | OpenAI — readiness scoring and resume/transcript `uploadFile` |
 | `AI_GATEWAY_API_KEY` | Vercel AI Gateway — coach chat and roadmap generation |
 | `PARALLEL_API_KEY` | Parallel web search/extract for readiness research |
