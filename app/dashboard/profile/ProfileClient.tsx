@@ -7,6 +7,7 @@ import { Field, Input, Select } from "@/components/ui/input";
 import { TagInput } from "@/components/ui/tag-input";
 import { roleOptions, skillSuggestions} from "@/lib/constants";
 import { profile } from "./actions";
+import { DeleteAccountCard } from "./DeleteAccountCard";
 
 type User = {
   created_at: string;
@@ -103,6 +104,8 @@ export function ProfileForm({ user }: { user: User }) {
         <Button variant="ghost">Cancel</Button>
         <Button onClick={() => handleSubmit()} disabled={isPending}>{isPending ? 'Saving...' : 'Save changes'}</Button>
       </div>
+
+      <DeleteAccountCard email={user.email} />
     </div>
   );
 }
