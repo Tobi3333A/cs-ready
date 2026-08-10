@@ -20,11 +20,17 @@ export default function AuthLayout({
         </div>
         <div className="mx-auto w-full max-w-md text-center text-xs text-subtle">
           By continuing you agree to our{" "}
-          <Link href="#" className="text-muted underline-offset-2 hover:underline">
+          <Link
+            href="/terms"
+            className="text-muted underline-offset-2 hover:underline"
+          >
             Terms
           </Link>{" "}
           and{" "}
-          <Link href="#" className="text-muted underline-offset-2 hover:underline">
+          <Link
+            href="/privacy"
+            className="text-muted underline-offset-2 hover:underline"
+          >
             Privacy Policy
           </Link>
           .

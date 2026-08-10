@@ -22,11 +22,10 @@ const columns = [
   //   ],
   // },
   {
-    title: "Company",
+    title: "Legal",
     links: [
-      { label: "Chadashiel", href: "https://chadashiel.com" },
-      { label: "Privacy", href: "#" },
-      { label: "Terms", href: "#" },
+      { label: "Privacy", href: "/privacy" },
+      { label: "Terms", href: "/terms" },
     ],
   },
 ];
@@ -34,7 +33,7 @@ const columns = [
 export function SiteFooter() {
   return (
     <footer className="border-t border-border/60 bg-surface/40">
-      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
+      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 md:grid-cols-[2fr_1fr_1fr]">
         <div className="space-y-4">
           <Logo />
           <p className="max-w-xs text-sm text-muted">
@@ -64,7 +63,6 @@ export function SiteFooter() {
       <div className="border-t border-border/60">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-5 py-6 text-sm text-subtle sm:flex-row">
           <p>© {new Date().getFullYear()} CS-Ready. Built for students, by students.</p>
-          <p>This is a product of Chadashiel Education.</p>
         </div>
       </div>
     </footer>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SiteHeader } from "@/components/marketing/site-header";
 import { SiteFooter } from "@/components/marketing/site-footer";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { Progress } from "@/components/ui/progress";
+import type { ReactNode } from "react";
 
 const features = [
   {
@@ -71,10 +73,19 @@ const roles = [
   { title: "Mobile Engineer", match: 71, tone: "brand" as const },
 ];
 
-const faqs = [
+const faqs: { q: string; a: ReactNode }[] = [
   {
     q: "Is my data private?",
-    a: "You control every connection. Your profile is yours — disconnect any source at any time.",
+    a: (
+      <>
+        You control connections in CS-Ready — disconnect links or remove uploads
+        anytime. See our{" "}
+        <Link href="/privacy" className="text-foreground underline-offset-2 hover:underline">
+          Privacy Policy
+        </Link>{" "}
+        for how processors may retain copies.
+      </>
+    ),
   },
   {
     q: "Which roles does it support?",
