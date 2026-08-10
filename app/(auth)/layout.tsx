@@ -43,7 +43,7 @@ export default function AuthLayout({
           </div>
           <div className="max-w-md">
             <Badge tone="accent" dot className="mb-4">
-              Join thousands of CS students
+              Join other CS students
             </Badge>
             <h2 className="text-2xl font-bold leading-snug tracking-tight xl:text-3xl">
               Turn &ldquo;am I ready?&rdquo; into a number you can move.
