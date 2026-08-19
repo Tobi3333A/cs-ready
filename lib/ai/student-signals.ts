@@ -5,9 +5,9 @@ import {
   type StoredFile,
 } from "@/lib/integrations";
 
-export type AttachedFileEntry = [FileKey, StoredFile];
+type AttachedFileEntry = [FileKey, StoredFile];
 
-export type StudentReadinessContext = {
+type StudentReadinessContext = {
   overall: number;
   categories: {
     dsa: number;
@@ -23,7 +23,7 @@ export type StudentReadinessContext = {
   assessedAt: string;
 };
 
-export type StudentSignals = {
+type StudentSignals = {
   profileLinks: Record<string, string>;
   files: AttachedFileEntry[];
   attachedFiles: Record<string, { fileName: string; mimeType: string }>;
@@ -37,7 +37,7 @@ export type StudentSignals = {
   readiness: StudentReadinessContext | null;
 };
 
-export type StudentSignalsResult =
+type StudentSignalsResult =
   | { ok: true; data: StudentSignals }
   | { ok: false; error: string };
 

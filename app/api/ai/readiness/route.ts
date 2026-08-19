@@ -8,7 +8,6 @@ import {
 } from '@/lib/ai/student-signals';
 import { Output, generateText, stepCountIs } from 'ai';
 import { searchTool, extractTool } from '@parallel-web/ai-sdk-tools';
-import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { openai } from '@ai-sdk/openai';
 
@@ -150,6 +149,5 @@ After finishing research, output only the structured object matching the schema.
 
     if (insErr || !data) return Response.json({ error: insErr?.message ?? 'Error saving readiness' }, { status: 200 });
 
-    revalidatePath('/dashboard');
     return Response.json({ success: true });
 }

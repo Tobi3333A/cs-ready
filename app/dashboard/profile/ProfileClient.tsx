@@ -34,6 +34,7 @@ export function ProfileForm({ user }: { user: User }) {
     const formData = new FormData();
     formData.set('name', name);
     formData.set('grade', grade);
+    formData.set('school', school);
     formData.set('target', JSON.stringify(roles));
     formData.set('skills', JSON.stringify(skills));
 
